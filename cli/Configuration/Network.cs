@@ -313,7 +313,7 @@ namespace Cli.Configuration
         private bool StepWalletNodePubKey()
         {
             var section = new TextInput<string>(
-                "Enter the remote node public key from the list of the peers http://167.99.81.173:48655/member/peers (choose one)\n " +
+                "Enter the remote node public key from the list of the peers http://143.198.64.156:48655/member/peers (choose one)\n " +
                 "   Or if you have a node running, use your public key instead",
                 pubkey => !string.IsNullOrEmpty(pubkey), pubkey => pubkey);
             var success = _userInterface.Do(section, out var key);
