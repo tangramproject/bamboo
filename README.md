@@ -26,7 +26,7 @@ https://dotnet.microsoft.com/en-us/download
 For quick installation on Linux and macOS, execute the following command:
 
 ```shell
-bash <(curl -sSL https://raw.githubusercontent.com/cypher-network/bamboo/master/install/install.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/tangramproject/bamboo/master/install/install.sh)
 ```
 
 The following parameters can be supplied:
@@ -41,7 +41,7 @@ Uninstall wallet
 For example:
 
 ```shell
-bash <(curl -sSL https://raw.githubusercontent.com/cypher-network/bamboo/master/install/install.sh) --uninstall
+bash <(curl -sSL https://raw.githubusercontent.com/tangramproject/bamboo/master/install/install.sh) --uninstall
 ```
 
 > In some cases, `macOS` users might need to install gmp. The secp256k1 library depends on gmp (arbitrary precision arithmetic).
@@ -63,7 +63,7 @@ Users running Catalina, Mojave, or Big Sur, execute the following command if you
 ### Microsoft Windows
 
 For quick installation on Windows
-https://github.com/cypher-network/bamboo/releases
+https://github.com/tangramproject/bamboo/releases
 
 Once installed open Powershell/CMD in Administrative mode then type `clibamwallet --configure`
 
