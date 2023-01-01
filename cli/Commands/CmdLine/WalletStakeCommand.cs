@@ -181,45 +181,56 @@ public class WalletStakeCommand : Command
                 return Task.CompletedTask;
             }, Patterns.Hearts);
             Output[] listOutputs;
-            if (stakeAmount != 0)
+
+            try
             {
-                var balances1 = balances;
-                var spend = balances
-                    .Where(balance =>
-                        !balance.Commitment.IsLockedOrInvalid() && balance.Total >= stakeAmount.ConvertToUInt64() &&
-                        balance.Total <= balances1.Max(m => m.Total)).OrderByDescending(x => x.Total)
-                    .Select(x => x.Total).Aggregate((x, y) =>
-                        x - stakeAmount.ConvertToUInt64() < y - stakeAmount.ConvertToUInt64() ? x : y);
-                balances1 = balances.Where(b => b.Total >= stakeAmount.ConvertToUInt64() && b.Total <= spend).ToArray();
-                listOutputs = balances1.Select(balance => new Output
+                if (stakeAmount != 0)
                 {
-                    C = balance.Commitment.C,
-                    E = balance.Commitment.E,
-                    N = balance.Commitment.N,
-                    T = balance.Commitment.T
-                }).ToArray();
-                balanceProfile = _commandReceiver.GetBalanceProfile(activeSession, balances1);
-                var yesNoContinue =
-                    Prompt.GetYesNo($"Closest stake amount: {balanceProfile.Balance} to continue (y) or cancel (n)",
-                        false, ConsoleColor.Yellow);
-                if (!yesNoContinue)
+                    var balances1 = balances;
+                    var spend = balances
+                        .Where(balance =>
+                            !balance.Commitment.IsLockedOrInvalid() && balance.Total >= stakeAmount.ConvertToUInt64() &&
+                            balance.Total <= balances1.Max(m => m.Total)).OrderByDescending(x => x.Total)
+                        .Select(x => x.Total).Aggregate((x, y) =>
+                            x - stakeAmount.ConvertToUInt64() < y - stakeAmount.ConvertToUInt64() ? x : y);
+                    balances1 = balances.Where(b => b.Total >= stakeAmount.ConvertToUInt64() && b.Total <= spend).ToArray();
+                    listOutputs = balances1.Select(balance => new Output
+                    {
+                        C = balance.Commitment.C,
+                        E = balance.Commitment.E,
+                        N = balance.Commitment.N,
+                        T = balance.Commitment.T
+                    }).ToArray();
+                    balanceProfile = _commandReceiver.GetBalanceProfile(activeSession, balances1);
+                    var yesNoContinue =
+                        Prompt.GetYesNo($"Closest stake amount: {balanceProfile.Balance} to continue (y) or cancel (n)",
+                            false, ConsoleColor.Yellow);
+                    if (!yesNoContinue)
+                    {
+                        _console.ForegroundColor = ConsoleColor.Green;
+                        _console.WriteLine("Staking has been cancelled");
+                        _console.ResetColor();
+                        return;
+                    }
+                }
+                else
                 {
-                    _console.ForegroundColor = ConsoleColor.Green;
-                    _console.WriteLine("Staking has been cancelled");
-                    _console.ResetColor();
-                    return;
+                    listOutputs = balances.Select(balance => new Output
+                    {
+                        C = balance.Commitment.C,
+                        E = balance.Commitment.E,
+                        N = balance.Commitment.N,
+                        T = balance.Commitment.T
+                    }).ToArray();
+                    stakeAmount = balanceProfile.Balance;
                 }
             }
-            else
+            catch (Exception ex)
             {
-                listOutputs = balances.Select(balance => new Output
-                {
-                    C = balance.Commitment.C,
-                    E = balance.Commitment.E,
-                    N = balance.Commitment.N,
-                    T = balance.Commitment.T
-                }).ToArray();
-                stakeAmount = balanceProfile.Balance;
+                _console.ForegroundColor = ConsoleColor.Red;
+                _console.WriteLine($"Something went wrong:\n {ex.Message}");
+                _console.ResetColor();
+                return;
             }
 
             await Spinner.StartAsync($"Setting up staking on node {_commandReceiver.NetworkSettings().RemoteNode} ...",
