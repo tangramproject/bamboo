@@ -1,7 +1,7 @@
-# cypher bamboo wallet
+# Tangram Bamboo wallet
 
-[![Build wallet](https://github.com/cypher-network/bamboo/workflows/build%20wallet/badge.svg)](https://github.com/cypher-network/bamboo/commits/master/)
-[![GitHub release](https://img.shields.io/github/release/cypher-network/bamboo.svg)](https://GitHub.com/cypher-network/bamboo/releases/)
+[![Build wallet](https://github.com/tangramproject/bamboo/workflows/build%20wallet/badge.svg)](https://github.com/tangramproject/bamboo/commits/master/)
+[![GitHub release](https://img.shields.io/github/release/tangramproject/bamboo.svg)](https://GitHub.com/tangramproject/bamboo/releases/)
 
 
 | OS             | Version      | Architecture | Supported          |
@@ -14,8 +14,6 @@
 
 > Some unknown operating systems are still being tested. 
 > If you are technical or would like to get your hands dirty, please go ahead and install the wallet. It won't bite :yum:
-
->Raspberry Pi 4 needs an update, patch released soon™
 
 ## Installation
 ### .Net 6
