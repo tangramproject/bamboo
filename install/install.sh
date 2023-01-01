@@ -85,7 +85,7 @@ TANGRAM_BAMBOO_VERSION_SHORT=$(echo "${TANGRAM_BAMBOO_VERSION}" | cut -c 2-)
 TANGRAM_BAMBOO_ARTIFACT_PREFIX="tangram-bamboo_${TANGRAM_BAMBOO_VERSION_SHORT}_"
 TANGRAM_BAMBOO_URL_PREFIX="https://github.com/tangramproject/bamboo/releases/download/${TANGRAM_BAMBOO_VERSION}/"
 
-TANGRAMBAMBOO_OPT_PATH="/opt/tangram/bamboo/"
+TANGRAM_BAMBOO_OPT_PATH="/opt/tangram/bamboo/"
 TANGRAM_BAMBOO_TMP_PATH="/tmp/opt/tangram/bamboo/"
 TANGRAM_BAMBOO_SYMLINK_PATH="/usr/local/bin/"
 TANGRAM_BAMBOO_EXECUTABLE="clibamwallet"
