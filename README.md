@@ -1,6 +1,6 @@
 # Tangram Bamboo wallet
 
-[![Build wallet](https://github.com/tangramproject/bamboo/workflows/build%20wallet/badge.svg)](https://github.com/tangramproject/bamboo/commits/master/)
+[![Build Tangram wallet](https://github.com/tangramproject/bamboo/workflows/build%20tangram%20wallet/badge.svg)](https://github.com/tangramproject/bamboo/commits/master/)
 [![GitHub release](https://img.shields.io/github/release/tangramproject/bamboo.svg)](https://GitHub.com/tangramproject/bamboo/releases/)
 
 
