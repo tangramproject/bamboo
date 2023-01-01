@@ -19,7 +19,7 @@ namespace Cli.Configuration
         private readonly IUserInterface _userInterface;
         private readonly UserInterfaceChoice _optionCancel = new(string.Empty);
         private readonly IList<IPService> _ipServices = IPServices.Services;
-        private readonly IPAddress _nodeTangramIPAddress = IPAddress.Parse("167.99.81.173");
+        private readonly IPAddress _nodeTangramIPAddress = IPAddress.Parse("xtgm1.tangram.network");
 
         public class ConfigurationClass
         {
@@ -122,7 +122,7 @@ namespace Cli.Configuration
         #region node
         private bool StepNode()
         {
-            UserInterfaceChoice optionNodeTangram = new("Tangram team-managed node (167.99.81.173:7946)");
+            UserInterfaceChoice optionNodeTangram = new("Tangram team-managed node (xtgm1.tangram.network:7946)");
             UserInterfaceChoice optionNodeCustom = new("Custom node");
 
             var section = new UserInterfaceSection(
