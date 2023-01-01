@@ -10,7 +10,7 @@
 | CentOS Stream  | 8,9          | x64          | :heavy_check_mark: |
 | Windows        | 10,11        | x64          | :heavy_check_mark: |
 | macOS          | 11,12        | x64          | :heavy_check_mark: |
-| Raspberry Pi 4 | 10 (buster)  | x64          | ? (workaround)     |
+| Raspberry Pi 4 | 10 (buster)  | x64          | :heavy_check_mark: |
 
 > Some unknown operating systems are still being tested. 
 > If you are technical or would like to get your hands dirty, please go ahead and install the wallet. It won't bite :yum:
