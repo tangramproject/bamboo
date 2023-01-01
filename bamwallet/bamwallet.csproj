@@ -7,7 +7,7 @@
     <Platforms>AnyCPU;x64</Platforms>
     <RootNamespace>BAMWallet</RootNamespace>
     <AssemblyVersion>0.0.48.0</AssemblyVersion>
-    <Company>CypherNetwork</Company>
+    <Company>Tangram</Company>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

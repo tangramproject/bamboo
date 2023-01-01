@@ -1,4 +1,4 @@
-name: build cypher wallet
+name: build tangram wallet
 
 on:
   push:

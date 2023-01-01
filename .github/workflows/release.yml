@@ -1,4 +1,4 @@
-name: build cypher wallet release
+name: build tangram wallet release
 
 on:
   push:
@@ -83,7 +83,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: cypher-bamboo_${{ env.VERSION }}*.*
+          files: tangram-bamboo_${{ env.VERSION }}*.*
 
   build-windows:
     needs: validate-version
@@ -110,4 +110,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: cypher-bamboo_${{ env.VERSION }}*.*
+          files: tangram-bamboo_${{ env.VERSION }}*.*

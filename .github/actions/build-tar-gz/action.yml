@@ -18,11 +18,11 @@ runs:
     run: |
       pushd publish/cli/${{ inputs.runtime }}/
 
-      tar -czf "cypher-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz" *
-      sha256sum cypher-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz > cypher-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz.sha256
+      tar -czf "tangram-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz" *
+      sha256sum tangram-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz > tangram-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz.sha256
         
-      mv cypher-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz        ${{ github.workspace }}
-      mv cypher-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz.sha256 ${{ github.workspace }}
+      mv tangram-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz        ${{ github.workspace }}
+      mv tangram-bamboo_${{ env.VERSION }}_${{ inputs.runtime }}.tar.gz.sha256 ${{ github.workspace }}
 
       popd
     shell: bash

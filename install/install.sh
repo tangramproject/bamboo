@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090
 
-# cypher bamboo
+# tangram bamboo
 # (c) 2021 Tangram
 #
 # Install with this command (from your Linux machine):
 #
-# bash <(curl -sSL https://raw.githubusercontent.com/cypher-network/bamboo/master/install/linux/install.sh)
+# bash <(curl -sSL https://raw.githubusercontent.com/tangramproject/bamboo/master/install/linux/install.sh)
 
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # We do not want users to end up with a partially working install, so we exit the script
@@ -44,7 +44,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   IS_MACOS=true
   ARCHITECTURE_UNIFIED="osx-x64"
 
-  CYPHER_BAMBOO_VERSION=$(curl --silent "https://api.github.com/repos/cypher-network/bamboo/releases/latest" | grep -w '"tag_name": "v.*"' | cut -f2 -d ":" | cut -f2 -d "\"")
+TANGRAM_BAMBOO_VERSION=$(curl --silent "https://api.github.com/repos/tangramproject/bamboo/releases/latest" | grep -w '"tag_name": "v.*"' | cut -f2 -d ":" | cut -f2 -d "\"")
 
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   IS_LINUX=true
@@ -73,7 +73,7 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     IS_DEBIAN_BASED=true
   fi
 
-  CYPHER_BAMBOO_VERSION=$(curl --silent "https://api.github.com/repos/cypher-network/bamboo/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
+  TANGRAM_BAMBOO_VERSION=$(curl --silent "https://api.github.com/repos/tangramproject/bamboo/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
 
 else
   echo "Unsupported OS type ${OSTYPE}"
@@ -81,14 +81,14 @@ else
 fi
 
 
-CYPHER_BAMBOO_VERSION_SHORT=$(echo "${CYPHER_BAMBOO_VERSION}" | cut -c 2-)
-CYPHER_BAMBOO_ARTIFACT_PREFIX="cypher-bamboo_${CYPHER_BAMBOO_VERSION_SHORT}_"
-CYPHER_BAMBOO_URL_PREFIX="https://github.com/cypher-network/bamboo/releases/download/${CYPHER_BAMBOO_VERSION}/"
+TANGRAM_BAMBOO_VERSION_SHORT=$(echo "${TANGRAM_BAMBOO_VERSION}" | cut -c 2-)
+TANGRAM_BAMBOO_ARTIFACT_PREFIX="tangram-bamboo_${TANGRAM_BAMBOO_VERSION_SHORT}_"
+TANGRAM_BAMBOO_URL_PREFIX="https://github.com/tangramproject/bamboo/releases/download/${TANGRAM_BAMBOO_VERSION}/"
 
-CYPHER_BAMBOO_OPT_PATH="/opt/cypher/bamboo/"
-CYPHER_BAMBOO_TMP_PATH="/tmp/opt/cypher/bamboo/"
-CYPHER_BAMBOO_SYMLINK_PATH="/usr/local/bin/"
-CYPHER_BAMBOO_EXECUTABLE="clibamwallet"
+TANGRAMBAMBOO_OPT_PATH="/opt/tangram/bamboo/"
+TANGRAM_BAMBOO_TMP_PATH="/tmp/opt/tangram/bamboo/"
+TANGRAM_BAMBOO_SYMLINK_PATH="/usr/local/bin/"
+TANGRAM_BAMBOO_EXECUTABLE="clibamwallet"
 
 
 # Check if we are running on a real terminal and find the rows and columns
@@ -135,7 +135,7 @@ is_command() {
 
 
 install_info() {
-  ARCHIVE="${CYPHER_BAMBOO_ARTIFACT_PREFIX}${ARCHITECTURE_UNIFIED}.tar.gz"
+  ARCHIVE="${TANGRAM_BAMBOO_ARTIFACT_PREFIX}${ARCHITECTURE_UNIFIED}.tar.gz"
   printf "\n  %b Using installation archive %s\n" "${TICK}" "${ARCHIVE}"
 }
 
@@ -268,9 +268,9 @@ download_archive() {
     fi
   fi
 
-  DOWNLOAD_PATH="/tmp/cypher-bamboo/"
+  DOWNLOAD_PATH="/tmp/tangram-bamboo/"
   DOWNLOAD_FILE="${DOWNLOAD_PATH}${ARCHIVE}"
-  DOWNLOAD_URL="${CYPHER_BAMBOO_URL_PREFIX}${ARCHIVE}"
+  DOWNLOAD_URL="${TANGRAM_BAMBOO_URL_PREFIX}${ARCHIVE}"
 
   printf "\n";
   printf "  %b Checking archive %s" "${INFO}" "${ARCHIVE}"
@@ -306,29 +306,29 @@ download_archive() {
 install_archive() {
   printf "\n  %b Installing archive\n" "${INFO}"
 
-  printf "  %b Unpacking archive to %s" "${INFO}" "${CYPHER_BAMBOO_TMP_PATH}"
-  mkdir -p "${CYPHER_BAMBOO_TMP_PATH}"
+  printf "  %b Unpacking archive to %s" "${INFO}" "${TANGRAM_BAMBOO_TMP_PATH}"
+  mkdir -p "${TANGRAM_BAMBOO_TMP_PATH}"
   if [ "${IS_LINUX}" = true ]; then
-    tar --overwrite -xf "${DOWNLOAD_FILE}" -C "${CYPHER_BAMBOO_TMP_PATH}"
+    tar --overwrite -xf "${DOWNLOAD_FILE}" -C "${TANGRAM_BAMBOO_TMP_PATH}"
   elif [ "${IS_MACOS}" = true ]; then
-    tar -xf "${DOWNLOAD_FILE}" -C "${CYPHER_BAMBOO_TMP_PATH}"
+    tar -xf "${DOWNLOAD_FILE}" -C "${TANGRAM_BAMBOO_TMP_PATH}"
   fi  
 
-  printf "%b  %b Unpacked archive to %s\n" "${OVER}" "${TICK}" "${CYPHER_BAMBOO_TMP_PATH}"
+  printf "%b  %b Unpacked archive to %s\n" "${OVER}" "${TICK}" "${TANGRAM_BAMBOO_TMP_PATH}"
 
-  printf "  %b Installing to %s" "${INFO}" "${CYPHER_BAMBOO_OPT_PATH}"
-  sudo mkdir -p "${CYPHER_BAMBOO_OPT_PATH}"
-  sudo cp -r "${CYPHER_BAMBOO_TMP_PATH}"* "${CYPHER_BAMBOO_OPT_PATH}"
-  sudo chmod -R 755 "${CYPHER_BAMBOO_OPT_PATH}"
-  sudo chown -R $USER "${CYPHER_BAMBOO_OPT_PATH}"
-  if [ ! -f "${CYPHER_BAMBOO_SYMLINK_PATH}${CYPHER_BAMBOO_EXECUTABLE}" ]; then
-    sudo ln -s "${CYPHER_BAMBOO_OPT_PATH}${CYPHER_BAMBOO_EXECUTABLE}" "${CYPHER_BAMBOO_SYMLINK_PATH}"
+  printf "  %b Installing to %s" "${INFO}" "${TANGRAM_BAMBOO_OPT_PATH}"
+  sudo mkdir -p "${TANGRAM_BAMBOO_OPT_PATH}"
+  sudo cp -r "${TANGRAM_BAMBOO_TMP_PATH}"* "${TANGRAM_BAMBOO_OPT_PATH}"
+  sudo chmod -R 755 "${TANGRAM_BAMBOO_OPT_PATH}"
+  sudo chown -R $USER "${TANGRAM_BAMBOO_OPT_PATH}"
+  if [ ! -f "${TANGRAM_BAMBOO_SYMLINK_PATH}${TANGRAM_BAMBOO_EXECUTABLE}" ]; then
+    sudo ln -s "${TANGRAM_BAMBOO_OPT_PATH}${TANGRAM_BAMBOO_EXECUTABLE}" "${TANGRAM_BAMBOO_SYMLINK_PATH}"
   fi
 
-  printf "%b  %b Installed to %s\n" "${OVER}" "${TICK}" "${CYPHER_BAMBOO_OPT_PATH}"   
+  printf "%b  %b Installed to %s\n" "${OVER}" "${TICK}" "${TANGRAM_BAMBOO_OPT_PATH}"   
 
   printf "  %b Running configuration util" "${INFO}"
-  "${CYPHER_BAMBOO_OPT_PATH}${CYPHER_BAMBOO_EXECUTABLE}" --configure
+  "${TANGRAM_BAMBOO_OPT_PATH}${TANGRAM_BAMBOO_EXECUTABLE}" --configure
   printf "%b  %b Run configuration util\n\n" "${OVER}" "${TICK}"
 }
 
@@ -337,7 +337,7 @@ cleanup() {
   printf "\n"
   printf "  %b Cleaning up files" "${INFO}"
   rm -rf "${DOWNLOAD_PATH}"
-  sudo rm -rf "${CYPHER_BAMBOO_TMP_PATH}"
+  sudo rm -rf "${TANGRAM_BAMBOO_TMP_PATH}"
   printf "%b  %b Cleaned up files\n" "${OVER}" "${TICK}"
 }
 
@@ -350,8 +350,8 @@ finish() {
 if [ "${IS_UNINSTALL}" = true ]; then
   printf "  %b Uninstalling\n\n" "${INFO}"
 
-  sudo rm -rf "${CYPHER_BAMBOO_OPT_PATH}"
-  sudo rm -f "${CYPHER_BAMBOO_SYMLINK_PATH}${CYPHER_BAMBOO_EXECUTABLE}"
+  sudo rm -rf "${TANGRAM_BAMBOO_OPT_PATH}"
+  sudo rm -f "${TANGRAM_BAMBOO_SYMLINK_PATH}${TANGRAM_BAMBOO_EXECUTABLE}"
 
   printf "\n\n  %b Uninstall succesful\n\n" "${DONE}"
 
