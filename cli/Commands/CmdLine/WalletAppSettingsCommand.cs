@@ -76,6 +76,7 @@ public class WalletAppSettingsCommand : Command
             networkSettings.RemotePort = nodePort;
         }
 
+        var previousPk = networkSettings.RemoteNodePubKey;
         if (!string.IsNullOrEmpty(nodePk))
         {
             if (networkSettings.RemoteNodePubKey != nodePk)
@@ -102,6 +103,12 @@ public class WalletAppSettingsCommand : Command
         }
 
         if (!previousNode.Equals(networkSettings.RemoteNode))
+        {
+            _console.WriteLine("New node detected. Wallet shutting down. Please restart the wallet for the new safeguard download.");
+            Environment.Exit(0);
+        }
+        
+        if (!previousPk.Equals(networkSettings.RemoteNodePubKey))
         {
             _console.WriteLine("New node detected. Wallet shutting down. Please restart the wallet for the new safeguard download.");
             Environment.Exit(0);

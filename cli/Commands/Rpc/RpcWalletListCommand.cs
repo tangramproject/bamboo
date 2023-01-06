@@ -25,7 +25,7 @@ namespace Cli.Commands.Rpc
             try
             {
                 var request = _commandReceiver.WalletList();
-                Result = new Tuple<object, string>(Result.Item1, Result.Item2);
+                Result = new Tuple<object, string>(request.Item1, request.Item2);
             }
             catch (Exception ex)
             {

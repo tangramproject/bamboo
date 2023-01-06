@@ -31,6 +31,11 @@ namespace Cli.Commands.Rpc
         {
             try
             {
+                var canSpend = _commandReceiver.GetSpending(_session, _transaction);
+                if (!canSpend.Success)
+                {
+                    throw new Exception(canSpend.NonSuccessMessage);
+                }
                 var createPaymentResult = _commandReceiver.CreateTransaction(_session, ref _transaction);
                 if (createPaymentResult.Item1 is null)
                 {

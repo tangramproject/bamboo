@@ -20,10 +20,11 @@ namespace Cli.Commands.Rpc
         {
         }
 
-        public override Task Execute(Session activeSession = null)
+        public override async Task Execute(Session activeSession = null)
         {
             try
             {
+                await _commandReceiver.SyncWallet(_session);
                 Result = _commandReceiver.History(_session);
             }
             catch (Exception ex)
@@ -34,8 +35,6 @@ namespace Cli.Commands.Rpc
             {
                 _cmdFinishedEvent.Set();
             }
-
-            return Task.CompletedTask;
         }
     }
 }

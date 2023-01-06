@@ -13,3 +13,11 @@ public record Output
     [Key(2)] public byte[] N { get; set; }
     [Key(3)] public CoinType T { get; set; }
 }
+
+public record OutputText
+{
+    [Key(0)] public string C { get; set; }
+    [Key(1)] public string E { get; set; }
+    [Key(2)] public string N { get; set; }
+    [Key(3)] public sbyte T { get; set; }
+}

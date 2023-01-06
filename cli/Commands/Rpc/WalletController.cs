@@ -16,14 +16,16 @@ using BAMWallet.HD;
 using BAMWallet.Model;
 using Cli.Commands.Common;
 using Cli.Commands.Rpc;
+using CLi.Commands.Rpc;
 using Dawn;
 using MessagePack;
 using NBitcoin;
 
 namespace BAMWallet.Rpc.Controllers
 {
-    [Route("api/wallet")]
     [ApiController]
+    [Route("api/wallet")]
+    [Produces("application/json")]
     public class WalletController
     {
         private readonly ICommandService _commandService;
@@ -43,7 +45,7 @@ namespace BAMWallet.Rpc.Controllers
         private Session GetSessionFromCredentials(Credentials credentials)
         {
             Guard.Argument(credentials, nameof(credentials)).NotNull();
-            var identifier = credentials.Identifier.ToSecureString();
+            var identifier = credentials.Username.ToSecureString();
             var pass = credentials.Passphrase.ToSecureString();
             return Session.AreCredentialsValid(identifier, pass) ? new Session(identifier, pass) : null;
         }
@@ -73,12 +75,12 @@ namespace BAMWallet.Rpc.Controllers
             SendCommandAndAwaitResponse(cmd);
             var history = cmd.Result;
             if (history.Item1 is null) return new BadRequestObjectResult(history.Item2);
-            var balance = history.Item1 as IOrderedEnumerable<BalanceSheet>;
+            var balance = history.Item1 as IList<BalanceSheet>;
             return last ? new OkObjectResult($"{balance.Last()}") : new OkObjectResult(balance);
         }
 
         /// <summary>
-        /// 
+        /// Find out your address
         /// </summary>
         /// <param name="credentials"></param>
         /// <returns></returns>
@@ -91,17 +93,17 @@ namespace BAMWallet.Rpc.Controllers
                 return new BadRequestObjectResult("Invalid identifier or password!");
             }
 
-            AutoResetEvent cmdFinishedEvent = new AutoResetEvent(false);
-            RpcWalletAddressCommand cmd = new RpcWalletAddressCommand(_serviceProvider, ref cmdFinishedEvent, session);
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd = new RpcWalletAddressCommand(_serviceProvider, ref cmdFinishedEvent, session);
             SendCommandAndAwaitResponse(cmd);
             var result = cmd.Result;
             return result.Item1 is null
                 ? new BadRequestObjectResult(result.Item2)
-                : new OkObjectResult(result.Item1 as string);
+                : new OkObjectResult(new { address = result.Item1 as string });
         }
 
         /// <summary>
-        /// 
+        /// Get your wallet balance
         /// </summary>
         /// <param name="credentials"></param>
         /// <returns></returns>
@@ -109,42 +111,63 @@ namespace BAMWallet.Rpc.Controllers
         public IActionResult Balance([FromBody] Credentials credentials)
         {
             var session = GetSessionFromCredentials(credentials);
-            return null == session
-                ? new BadRequestObjectResult("Invalid identifier or password!")
-                : GetHistory(session, true);
+            if (session == null) return new BadRequestObjectResult("Invalid identifier or password!");
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd = new RcpWalletTxHistoryCommand(_serviceProvider, ref cmdFinishedEvent, session);
+            SendCommandAndAwaitResponse(cmd);
+            var balanceSheet = cmd.Result;
+            if (balanceSheet.Item1 is null) return new BadRequestObjectResult("Nothing to see");
+            var balanceSheets = balanceSheet.Item1 as IReadOnlyCollection<BalanceSheet>;
+            return new OkObjectResult(new { balance = balanceSheets.Last().Balance });
         }
 
         /// <summary>
-        /// 
+        /// Create new wallet
         /// </summary>
         /// <param name="name"></param>
-        /// <param name="seed"></param>
-        /// <param name="passphrase"></param>
         /// <returns></returns>
-        [HttpGet("create", Name = "Create")]
-        public IActionResult Create(string name, string seed = null, string passphrase = null)
+        [HttpPost("create", Name = "Create")]
+        public IActionResult Create(string name)
         {
             AutoResetEvent cmdFinishedEvent = new AutoResetEvent(false);
-            RpcCreateWalletCommand cmd = new RpcCreateWalletCommand(name, seed, passphrase, _serviceProvider, ref cmdFinishedEvent);
+            RpcCreateWalletCommand cmd = new RpcCreateWalletCommand(name, _serviceProvider, ref cmdFinishedEvent);
             SendCommandAndAwaitResponse(cmd);
 
             return cmd.Result.Item1 is null
                 ? new BadRequestObjectResult(cmd.Result.Item2)
                 : new OkObjectResult(cmd.Result.Item1);
         }
+        
+        /// <summary>
+        /// Restore wallet from seed and passphrase
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="seed"></param>
+        /// <param name="passphrase"></param>
+        /// <returns></returns>
+        [HttpPost("restore", Name = "Restore")]
+        public IActionResult Restore(string name, string seed = null, string passphrase = null)
+        {
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd = new RpcWalletRestoreCommand(name, seed, passphrase, _serviceProvider, ref cmdFinishedEvent);
+            SendCommandAndAwaitResponse(cmd);
+            return cmd.Result.Item1 is null
+                ? new BadRequestObjectResult(cmd.Result.Item2)
+                : new OkObjectResult(cmd.Result.Item1);
+        }
 
         /// <summary>
-        /// 
+        /// Create new seed and passphrase
         /// </summary>
         /// <param name="mnemonicWordCount"></param>
         /// <param name="passphraseWordCount"></param>
         /// <returns></returns>
-        [HttpGet("seed", Name = "CreateSeed")]
+        [HttpGet("newseed", Name = "CreateSeed")]
         public IActionResult CreateSeed(WordCount mnemonicWordCount = WordCount.TwentyFour,
             WordCount passphraseWordCount = WordCount.Twelve)
         {
-            AutoResetEvent cmdFinishedEvent = new AutoResetEvent(false);
-            RpcCreateSeedCommand cmd = new RpcCreateSeedCommand(mnemonicWordCount, passphraseWordCount,
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd = new RpcCreateSeedCommand(mnemonicWordCount, passphraseWordCount,
                 _serviceProvider, ref cmdFinishedEvent);
             SendCommandAndAwaitResponse(cmd);
             return cmd.Result.Item1 is null
@@ -153,22 +176,22 @@ namespace BAMWallet.Rpc.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Available wallets
         /// </summary>
         /// <returns></returns>
         [HttpGet("list", Name = "List")]
         public IActionResult List()
         {
-            AutoResetEvent cmdFinishedEvent = new AutoResetEvent(false);
-            RpcWalletListommand cmd = new RpcWalletListommand(_serviceProvider, ref cmdFinishedEvent);
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd = new RpcWalletListommand(_serviceProvider, ref cmdFinishedEvent);
             SendCommandAndAwaitResponse(cmd);
             return cmd.Result.Item1 is null
-                ? new BadRequestObjectResult(cmd.Result.Item2 as string)
+                ? new BadRequestObjectResult(cmd.Result.Item2)
                 : new OkObjectResult(cmd.Result.Item1 as List<string>);
         }
 
         /// <summary>
-        /// 
+        /// Show my transactions
         /// </summary>
         /// <param name="credentials"></param>
         /// <returns></returns>
@@ -182,59 +205,20 @@ namespace BAMWallet.Rpc.Controllers
         }
 
         /// <summary>
-        ///
-        /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
-        [HttpPost("transaction", Name = "CreateTransaction")]
-        public IActionResult CreateTransaction([FromBody] byte[] data)
-        {
-            var payment = MessagePackSerializer.Deserialize<Payment>(data);
-            var session = GetSessionFromCredentials(payment.Credentials);
-            if (null == session)
-            {
-                return new BadRequestObjectResult("Invalid identifier or password!");
-            }
-
-            var senderAddress = session.KeySet.StealthAddress;
-            session.SessionType = payment.SessionType;
-            var transaction = new WalletTransaction
-            {
-                Delay = 5,
-                Payment = payment.Amount,
-                Reward = payment.SessionType == SessionType.Coinstake ? payment.Reward : 0,
-                Memo = payment.Memo,
-                RecipientAddress = payment.Address,
-                WalletType = WalletType.Send,
-                SenderAddress = senderAddress,
-                IsVerified = false
-            };
-            var cmdFinishedEvent = new AutoResetEvent(false);
-            var cmd = new RpcCreateTransactionCommand(ref transaction, _serviceProvider, ref cmdFinishedEvent, session);
-            SendCommandAndAwaitResponse(cmd);
-            return cmd.Result.Item1 is null
-                ? new BadRequestObjectResult(cmd.Result.Item2)
-                : new ObjectResult(new
-                {
-                    messagepack = (cmd.Result.Item1 as WalletTransaction)?.Transaction.Serialize()
-                });
-        }
-
-        /// <summary>
-        /// 
+        /// Receive a payment
         /// </summary>
         /// <param name="receive"></param>
         /// <returns></returns>
         [HttpPost("receive", Name = "Receive")]
         public IActionResult Receive([FromBody] Receive receive)
         {
-            Guard.Argument(receive.Identifier, nameof(receive.Identifier)).NotNull().NotEmpty().NotWhiteSpace();
+            Guard.Argument(receive.Username, nameof(receive.Username)).NotNull().NotEmpty().NotWhiteSpace();
             Guard.Argument(receive.Passphrase, nameof(receive.Passphrase)).NotNull().NotEmpty().NotWhiteSpace();
-            Guard.Argument(receive.PaymentId, nameof(receive.PaymentId)).NotNull().NotEmpty().NotWhiteSpace();
+            Guard.Argument(receive.TransactionId, nameof(receive.TransactionId)).NotNull().NotEmpty().NotWhiteSpace();
             var session =
                 GetSessionFromCredentials(new Credentials
                 {
-                    Identifier = receive.Identifier,
+                    Username = receive.Username,
                     Passphrase = receive.Passphrase
                 });
             if (null == session)
@@ -242,9 +226,9 @@ namespace BAMWallet.Rpc.Controllers
                 return new BadRequestObjectResult("Invalid identifier or password!");
             }
 
-            AutoResetEvent cmdFinishedEvent = new AutoResetEvent(false);
-            RpcWalletReceiveCommand cmd =
-                new RpcWalletReceiveCommand(receive.PaymentId, _serviceProvider, ref cmdFinishedEvent, session);
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd =
+                new RpcWalletReceiveCommand(receive.TransactionId, _serviceProvider, ref cmdFinishedEvent, session);
             SendCommandAndAwaitResponse(cmd);
             return cmd.Result.Item1 is null
                 ? new BadRequestObjectResult(cmd.Result.Item2)
@@ -252,20 +236,20 @@ namespace BAMWallet.Rpc.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Spend some crypto
         /// </summary>
         /// <param name="spend"></param>
         /// <returns></returns>
         [HttpPost("spend", Name = "Spend")]
         public IActionResult Spend([FromBody] Spend spend)
         {
-            Guard.Argument(spend.Identifier, nameof(spend.Identifier)).NotNull().NotEmpty().NotWhiteSpace();
+            Guard.Argument(spend.Username, nameof(spend.Username)).NotNull().NotEmpty().NotWhiteSpace();
             Guard.Argument(spend.Passphrase, nameof(spend.Passphrase)).NotNull().NotEmpty().NotWhiteSpace();
             Guard.Argument(spend.Address, nameof(spend.Address)).NotNull().NotEmpty().NotWhiteSpace();
             Guard.Argument(spend.Amount, nameof(spend.Amount)).Positive();
             var session =
                 GetSessionFromCredentials(
-                    new Credentials { Identifier = spend.Identifier, Passphrase = spend.Passphrase });
+                    new Credentials { Username = spend.Username, Passphrase = spend.Passphrase });
             if (null == session)
             {
                 return new BadRequestObjectResult("Invalid identifier or password!");
@@ -280,14 +264,89 @@ namespace BAMWallet.Rpc.Controllers
                 RecipientAddress = spend.Address,
                 WalletType = WalletType.Send,
                 SenderAddress = senderAddress,
-                IsVerified = false
+                IsVerified = false,
+                Delay = 5
             };
-            AutoResetEvent cmdFinishedEvent = new AutoResetEvent(false);
-            RpcSpendCommand cmd = new RpcSpendCommand(ref transaction, _serviceProvider, ref cmdFinishedEvent, session);
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd = new RpcSpendCommand(ref transaction, _serviceProvider, ref cmdFinishedEvent, session);
             SendCommandAndAwaitResponse(cmd);
             return cmd.Result.Item1 is null
                 ? new BadRequestObjectResult(cmd.Result.Item2)
                 : new OkObjectResult(cmd.Result.Item1);
+        }
+        
+        /// <summary>
+        /// Setup staking on your node
+        /// </summary>
+        /// <param name="stakeCredentials"></param>
+        /// <returns></returns>
+        [HttpPost("stake", Name = "Stake")]
+        public IActionResult Stake([FromBody]  StakeCredentials stakeCredentials)
+        {
+            var session =
+                GetSessionFromCredentials(new Credentials
+                {
+                    Username = stakeCredentials.Name,
+                    Passphrase = stakeCredentials.Passphrase
+                });
+            if (null == session)
+            {
+                return new BadRequestObjectResult("Invalid identifier or password!");
+            }
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd =
+                new RcpWalletStakeCommand(stakeCredentials, _serviceProvider, ref cmdFinishedEvent,
+                    session);
+            SendCommandAndAwaitResponse(cmd);
+            return cmd.Result.Item1 == null
+                ? new BadRequestObjectResult(cmd.Result.Item2)
+                : new OkObjectResult(cmd.Result.Item2);
+        }
+        
+        /// <summary>
+        /// Get wallet version
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("version", Name = "Version")]
+        public IActionResult Version()
+        {
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd = new RcpVersionCommand(_serviceProvider, ref cmdFinishedEvent);
+            SendCommandAndAwaitResponse(cmd);
+            return cmd.Result.Item1 is null
+                ? new BadRequestObjectResult(cmd.Result.Item2)
+                : new ObjectResult(cmd.Result.Item1);
+        }
+        
+        /// <summary>
+        /// Raw transactions outputs
+        /// </summary>
+        /// <param name="credentials"></param>
+        /// <returns></returns>
+        [HttpPost("rawoutputs", Name = "RawOutputs")]
+        public IActionResult RawOutputs([FromBody] Credentials credentials)
+        {
+            var session = GetSessionFromCredentials(credentials);
+            return null == session
+                ? new BadRequestObjectResult("Invalid identifier or password!")
+                : GetRwaOutputs(session);
+        }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="session"></param>
+        /// <returns></returns>
+        private IActionResult GetRwaOutputs(Session session)
+        {
+            Guard.Argument(session, nameof(session)).NotNull();
+            AutoResetEvent cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd =
+                new RcpWalletRawOutputsCommand(_serviceProvider, ref cmdFinishedEvent, session);
+            SendCommandAndAwaitResponse(cmd);
+            var outputs = cmd.Result;
+            if (outputs.Item1 is null) return new BadRequestObjectResult(outputs.Item2);
+            return new OkObjectResult(outputs.Item1);
         }
     }
 }

@@ -101,6 +101,19 @@ namespace BAMWallet.Model
         [Key(2)] public byte[] RewardAddress { get; init; }
         [Key(3)] public Output[] Outputs { get; init; }
     }
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    public record StakeCredentials
+    {
+        public string Seed { get; init; }
+        public string Passphrase { get; init; }
+        public string Name { get; init; }
+        public string NodePrivateKey { get; init; }
+        public string NodeToken { get; init; }
+        public string RewardAddress { get; set; }
+    }
 
     /// <summary>
     /// 
