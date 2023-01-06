@@ -20,6 +20,7 @@
 CLI/appsettings.json
 desktop/
 blockzero/
+/install
 
 # Build results
 [Dd]ebug/

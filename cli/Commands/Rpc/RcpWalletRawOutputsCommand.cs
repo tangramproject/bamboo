@@ -38,6 +38,7 @@ public class RcpWalletRawOutputsCommand: RpcBaseCommand
         try
         {
             await _commandReceiver.SyncWallet(_session);
+            var recover = _commandReceiver.RecoverTransactions(_session, 0);
             var balances = _commandReceiver.GetBalances(_session);
             var listOutputs = balances.Select(balance => new OutputText
             {

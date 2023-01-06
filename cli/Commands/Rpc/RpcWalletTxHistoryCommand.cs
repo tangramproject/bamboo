@@ -25,6 +25,7 @@ namespace Cli.Commands.Rpc
             try
             {
                 await _commandReceiver.SyncWallet(_session);
+                var _ = _commandReceiver.RecoverTransactions(_session, 0);
                 Result = _commandReceiver.History(_session);
             }
             catch (Exception ex)
