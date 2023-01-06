@@ -7,6 +7,8 @@
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
 
 using System;
+using System.IO;
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -62,18 +64,20 @@ namespace Cli
                     License = new Microsoft.OpenApi.Models.OpenApiLicense
                     {
                         Name = "Attribution-NonCommercial-NoDerivatives 4.0 International",
-                        Url = new Uri("https://raw.githubusercontent.com/tangramproject/Cypher/master/LICENSE")
+                        Url = new Uri("https://raw.githubusercontent.com/tangramproject/tangram/master/LICENSE")
                     },
                     Title = "Bamboo Rest API",
                     Version = Util.GetAssemblyVersion(),
                     Description = "Bamboo Wallet Service.",
-                    TermsOfService = new Uri("https://tangrams.io/legal/"),
+                    TermsOfService = new Uri("https://tangram.network/policy/"),
                     Contact = new Microsoft.OpenApi.Models.OpenApiContact
                     {
                         Email = "",
-                        Url = new Uri("https://tangrams.io/about-tangram/team/")
                     }
                 });
+                
+                var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
             });
 
             services
