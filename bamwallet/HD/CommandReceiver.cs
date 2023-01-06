@@ -1266,10 +1266,10 @@ namespace BAMWallet.HD
                 keySet.RootKey.ZeroString();
                 return Task.FromResult(walletName);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 //_logger.Here().Error(ex, "Error creating wallet");
-                throw new Exception("Failed to create wallet");
+                throw new Exception(ex.Message);
             }
             finally
             {
@@ -1593,25 +1593,25 @@ namespace BAMWallet.HD
         ///
         /// </summary>
         /// <param name="session"></param>
-        /// <param name="paymentId"></param>
+        /// <param name="transactionId"></param>
         /// <returns></returns>
-        public Tuple<object, string> ReceivePayment(in Session session, string paymentId)
+        public Tuple<object, string> ReceivePayment(in Session session, string transactionId)
         {
             using var commandExecutionGuard = new RAIIGuard(IncrementCommandExecutionCount,
                 DecrementCommandExecutionCount);
-            Guard.Argument(paymentId, nameof(paymentId)).NotNull().NotEmpty().NotWhiteSpace();
+            Guard.Argument(transactionId, nameof(transactionId)).NotNull().NotEmpty().NotWhiteSpace();
             try
             {
-                if (AlreadyReceivedPayment(paymentId, session))
+                if (AlreadyReceivedPayment(transactionId, session))
                 {
-                    return new Tuple<object, string>(null, $"Transaction with paymentId: {paymentId} already exists");
+                    return new Tuple<object, string>(null, $"Transaction with paymentId: {transactionId} already exists");
                 }
 
                 var transactionResponse = _client.Send<TransactionResponse>(
-                    new Parameter { Value = paymentId.HexToByte(), MessageCommand = MessageCommand.GetTransaction });
+                    new Parameter { Value = transactionId.HexToByte(), MessageCommand = MessageCommand.GetTransaction });
                 if (transactionResponse is null)
                 {
-                    return new Tuple<object, string>(null, $"Failed to find transaction with paymentId: {paymentId}");
+                    return new Tuple<object, string>(null, $"Failed to find transaction with paymentId: {transactionId}");
                 }
 
                 var (spend, scan) = Unlock(session);
@@ -1651,7 +1651,7 @@ namespace BAMWallet.HD
             catch (Exception)
             {
                 return new Tuple<object, string>(null,
-                    $"Unable to find transaction with paymentId: {paymentId}. It could be on its way. Please try again in a few seconds");
+                    $"Unable to find transaction with Id: {transactionId}. It could be on it's way. Please try again in a few seconds");
             }
         }
 

@@ -62,7 +62,7 @@ namespace Cli.Configuration
 
             var section = new UserInterfaceSection(
                 "Network configuration",
-                "The cypher wallet communicates with a node over an API interface. For a proper wallet/node " +
+                "The bamboo wallet communicates with a node over an API interface. For a proper wallet/node " +
                 "setup, the following components need to be configured:" + Environment.NewLine +
                 Environment.NewLine +
                 "- Your wallet can communicate with a local or remote node" + Environment.NewLine +
@@ -127,7 +127,8 @@ namespace Cli.Configuration
 
             var section = new UserInterfaceSection(
                 "Node",
-                "You can connect to a public Tangram Team-managed node or a custom node like your own. You cannot stake on the Tangram Team-managed node.",
+                "You can connect to a public Tangram Team-managed node or a custom node like your own. " +
+                "You cannot stake on the Tangram Team-managed node.",
                 new[]
                 {
                     optionNodeTangram,

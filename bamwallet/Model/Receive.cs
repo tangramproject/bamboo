@@ -5,6 +5,6 @@ namespace BAMWallet.Model
 {
     public class Receive : Credentials
     {
-        public string PaymentId { get; set; }
+        public string TransactionId { get; set; }
     }
 }

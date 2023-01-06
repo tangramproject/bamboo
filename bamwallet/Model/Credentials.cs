@@ -8,7 +8,7 @@ namespace BAMWallet.Model
     [MessagePackObject]
     public class Credentials
     {
-        [Key(0)] public string Identifier { get; set; }
+        [Key(0)] public string Username { get; set; }
         [Key(1)] public string Passphrase { get; set; }
     }
 }
