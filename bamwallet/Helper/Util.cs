@@ -7,6 +7,7 @@ using System.Linq;
 using System.IO;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security;
 using LiteDB;
 using BAMWallet.Extensions;
@@ -172,6 +173,15 @@ namespace BAMWallet.Helper
             }
 
             return ret;
+        }
+
+        public static OSPlatform GetOperatingSystemPlatform()
+        {
+            foreach (var platform in new[] { OSPlatform.Linux, OSPlatform.FreeBSD, OSPlatform.OSX, OSPlatform.Windows })
+                if (RuntimeInformation.IsOSPlatform(platform))
+                    return platform;
+
+            throw new NotSupportedException();
         }
     }
 }

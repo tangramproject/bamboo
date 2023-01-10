@@ -10,8 +10,10 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using BAMWallet.HD;
+using BAMWallet.Helper;
 using BAMWallet.Model;
 using Cli.UI;
 using Microsoft.Extensions.Configuration;
@@ -55,9 +57,9 @@ namespace Cli
                     }
 
                     var ui = new TerminalUserInterface();
-                    var nc = new Configuration.Configuration(ui);
+                    var _ = new Configuration.Configuration(ui);
 
-                    var storedAppSettings = BAMWallet.Helper.Util.WalletPath("appsettings");
+                    var storedAppSettings = Util.WalletPath("appsettings");
                     try
                     {
                         if (File.Exists(storedAppSettings))
@@ -67,10 +69,10 @@ namespace Cli
                     }
                     catch (Exception ex)
                     {
-                        Console.Write($"Something went wrong!" +
-                                      $"\nBamboo might not have permissions to delete the file appsettings.db" +
+                        Console.Write("Something went wrong!" +
+                                      "\nBamboo might not have permissions to delete the file appsettings.db" +
                                       $"\nPlease manually delete the file : {storedAppSettings}\n" +
-                                      $"Or run Bamboo with elevated permissions.");
+                                      "Or run Bamboo with elevated permissions.");
                         Log.Error("{@Message}", ex.Message);
                     }
 
@@ -108,7 +110,6 @@ namespace Cli
                     throw new Exception($"No \"{Constant.ConfigSectionNameLog}\" section found in appsettings.json");
                 }
 
-
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(@$"
 .______        ___      .___  ___. .______     ______     ______   
@@ -116,11 +117,25 @@ namespace Cli
 |  |_)  |    /  ^  \    |  \  /  | |  |_)  | |  |  |  | |  |  |  | 
 |   _  <    /  /_\  \   |  |\/|  | |   _  <  |  |  |  | |  |  |  | 
 |  |_)  |  /  _____  \  |  |  |  | |  |_)  | |  `--'  | |  `--'  | 
-|______/  /__/     \__\ |__|  |__| |______/   \______/   \______/  v{BAMWallet.Helper.Util.GetAssemblyVersion()}");
+|______/  /__/     \__\ |__|  |__| |______/   \______/   \______/  v{Util.GetAssemblyVersion()}");
                 Console.WriteLine("");
                 Console.ResetColor();
                 var builder = CreateWebHostBuilder(args, config);
                 builder.UseConsoleLifetime();
+
+                var platform = Util.GetOperatingSystemPlatform();
+                if (platform == OSPlatform.Linux)
+                {
+                    builder.UseSystemd();
+                }
+                else if (platform == OSPlatform.OSX)
+                {
+                    // TODO
+                }
+                else if (platform == OSPlatform.Windows)
+                {
+                    builder.UseWindowsService();
+                }
 
                 using var host = builder.Build();
                 await host.RunAsync();
