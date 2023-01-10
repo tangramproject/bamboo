@@ -137,7 +137,7 @@ namespace BAMWallet.Rpc.Controllers
                 ? new BadRequestObjectResult(cmd.Result.Item2)
                 : new OkObjectResult(cmd.Result.Item1);
         }
-        
+
         /// <summary>
         /// Restore wallet from seed and passphrase
         /// </summary>
@@ -274,14 +274,14 @@ namespace BAMWallet.Rpc.Controllers
                 ? new BadRequestObjectResult(cmd.Result.Item2)
                 : new OkObjectResult(cmd.Result.Item1);
         }
-        
+
         /// <summary>
         /// Setup staking on your node
         /// </summary>
         /// <param name="stakeCredentials"></param>
         /// <returns></returns>
         [HttpPost("stake", Name = "Stake")]
-        public IActionResult Stake([FromBody]  StakeCredentials stakeCredentials)
+        public IActionResult Stake([FromBody] StakeCredentials stakeCredentials)
         {
             var session =
                 GetSessionFromCredentials(new Credentials
@@ -302,7 +302,7 @@ namespace BAMWallet.Rpc.Controllers
                 ? new BadRequestObjectResult(cmd.Result.Item2)
                 : new OkObjectResult(cmd.Result.Item2);
         }
-        
+
         /// <summary>
         /// Get wallet version
         /// </summary>
@@ -317,7 +317,7 @@ namespace BAMWallet.Rpc.Controllers
                 ? new BadRequestObjectResult(cmd.Result.Item2)
                 : new ObjectResult(cmd.Result.Item1);
         }
-        
+
         /// <summary>
         /// Raw transactions outputs
         /// </summary>
@@ -331,7 +331,7 @@ namespace BAMWallet.Rpc.Controllers
                 ? new BadRequestObjectResult("Invalid identifier or password!")
                 : GetRwaOutputs(session);
         }
-        
+
         /// <summary>
         /// 
         /// </summary>

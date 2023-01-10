@@ -101,7 +101,7 @@ namespace BAMWallet.Model
         [Key(2)] public byte[] RewardAddress { get; init; }
         [Key(3)] public Output[] Outputs { get; init; }
     }
-    
+
     /// <summary>
     /// 
     /// </summary>

@@ -8,12 +8,12 @@ using Cli.Commands.Rpc;
 
 namespace CLi.Commands.Rpc;
 
-public class RpcWalletRestoreCommand: RpcBaseCommand
+public class RpcWalletRestoreCommand : RpcBaseCommand
 {
     private readonly string _walletName;
     private readonly string _seed;
     private readonly string _passphrase;
-    
+
     /// <summary>
     /// 
     /// </summary>

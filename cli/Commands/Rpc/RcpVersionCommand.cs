@@ -6,7 +6,7 @@ using Cli.Commands.Rpc;
 
 namespace CLi.Commands.Rpc;
 
-public class RcpVersionCommand: RpcBaseCommand
+public class RcpVersionCommand : RpcBaseCommand
 {
     /// <summary>
     /// 
@@ -29,9 +29,9 @@ public class RcpVersionCommand: RpcBaseCommand
         {
             Version = BAMWallet.Helper.Util.GetAssemblyVersion()
         }, string.Empty);
-        
+
         _cmdFinishedEvent.Set();
-        
+
         return Task.CompletedTask;
     }
 }

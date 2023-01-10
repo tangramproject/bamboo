@@ -30,8 +30,8 @@ namespace Cli.Configuration
 
             Console.WriteLine();
             Console.WriteLine("Environment          : " + networkConfiguration.Configuration.Environment);
-            Console.WriteLine("Wallet Http port     : " + networkConfiguration.Configuration.WalletPort);
-            Console.WriteLine("Node TcpIP address   : " + networkConfiguration.Configuration.NodeIPAddress);
+            // Console.WriteLine("Wallet Http port     : " + networkConfiguration.Configuration.WalletPort);
+            Console.WriteLine("Node IP address      : " + networkConfiguration.Configuration.NodeIPAddress);
             Console.WriteLine("Node port            : " + networkConfiguration.Configuration.NodePort);
             Console.WriteLine("Node Public Key      : " + networkConfiguration.Configuration.NodePubKey);
             Console.WriteLine();

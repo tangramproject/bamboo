@@ -33,7 +33,7 @@ namespace Cli.Commands.Rpc
                 var defaultSeed = _commandReceiver.CreateSeed(NBitcoin.WordCount.TwentyFour);
                 var mnemonic = string.Join(" ", defaultSeed);
                 var defaultPass = _commandReceiver.CreateSeed(NBitcoin.WordCount.Fifteen);
-                var pass =  string.Join(" ", defaultPass);
+                var pass = string.Join(" ", defaultPass);
                 var id = await _commandReceiver.CreateWallet(mnemonic.ToSecureString(), pass.ToSecureString(), _walletName);
                 var session = new Session(id.ToSecureString(), pass.ToSecureString());
 

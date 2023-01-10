@@ -17,7 +17,7 @@ using Cli.Commands.Rpc;
 
 namespace CLi.Commands.Rpc;
 
-public class RcpWalletRawOutputsCommand: RpcBaseCommand
+public class RcpWalletRawOutputsCommand : RpcBaseCommand
 {
     /// <summary>
     /// 
@@ -47,12 +47,12 @@ public class RcpWalletRawOutputsCommand: RpcBaseCommand
                 N = balance.Commitment.N.ByteToHex(),
                 T = (sbyte)balance.Commitment.T
             }).ToList();
-            
+
             Result = new Tuple<object, string>(new
             {
                 Outputs = listOutputs
             }, string.Empty);
-            
+
         }
         catch (Exception ex)
         {

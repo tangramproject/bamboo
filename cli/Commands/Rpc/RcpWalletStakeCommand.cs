@@ -17,10 +17,10 @@ using Cli.Commands.Rpc;
 
 namespace CLi.Commands.Rpc;
 
-public class RcpWalletStakeCommand: RpcBaseCommand
+public class RcpWalletStakeCommand : RpcBaseCommand
 {
     private readonly StakeCredentials _stakeCredentials;
-    
+
     /// <summary>
     /// 
     /// </summary>
@@ -51,14 +51,14 @@ public class RcpWalletStakeCommand: RpcBaseCommand
                 N = balance.Commitment.N,
                 T = balance.Commitment.T
             }).ToArray();
-            
+
             var stakeCredentialsRequest = new StakeCredentialsRequest
             {
                 Seed = _stakeCredentials.Seed.ToByte(),
                 Passphrase = _stakeCredentials.Passphrase.ToByte(),
                 RewardAddress = _stakeCredentials.RewardAddress.ToByte()
             };
-            
+
             var messageResponse = await _commandReceiver.SendStakeCredentials(stakeCredentialsRequest,
                 _stakeCredentials.NodePrivateKey.HexToByte(), _stakeCredentials.NodeToken.HexToByte(), in listOutputs);
 
