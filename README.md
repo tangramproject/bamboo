@@ -16,12 +16,11 @@
 > If you are technical or would like to get your hands dirty, please go ahead and install the wallet. It won't bite :yum:
 
 ## Installation
-### .Net 6
-
-Downloads for .Net
-https://dotnet.microsoft.com/en-us/download
 
 ### Linux and macOS
+
+- [Install .NET For Linux](https://dotnet.microsoft.com/en-us/download?initial-os=linux)
+- [Install .NET For macOS](https://dotnet.microsoft.com/en-us/download?initial-os=macOS)
 
 For quick installation on Linux and macOS, execute the following command:
 
@@ -60,7 +59,9 @@ Users running Catalina, Mojave, or Big Sur, execute the following command if you
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 ````
 
-### Microsoft Windows
+### Windows
+
+> For some versions of Windows, you may need to install [Visual C++ Redistributable](https://docs.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
 
 For quick installation on Windows
 https://github.com/tangramproject/bamboo/releases
