@@ -27,16 +27,21 @@ public class WalletAppSettingsCommand : Command
         _console.ForegroundColor = ConsoleColor.Yellow;
         _console.WriteLine("");
         _console.WriteLine($"[1] Environment:                           {networkSettings.Environment}");
-        _console.WriteLine($"[2] Wallet endpoint [http://0.0.0.0:8001]: {networkSettings.WalletEndpoint}");
+        _console.WriteLine($"[2] Wallet [http://127.0.0.1:8001]:        {networkSettings.WalletEndpoint}");
         _console.WriteLine($"[3] Node [127.0.0.1]:                      {networkSettings.RemoteNode}");
-        _console.WriteLine($"[3] Node Port [7946]:                      {networkSettings.RemotePort}");
-        _console.WriteLine($"[4] Node Public Key:                       {networkSettings.RemoteNodePubKey}");
-        _console.WriteLine($"[5] Number of confirmations:               {networkSettings.NumberOfConfirmations}");
+        _console.WriteLine($"[4] Node Port [7946]:                      {networkSettings.RemotePort}");
+        _console.WriteLine($"[5] Node Public Key:                       {networkSettings.RemoteNodePubKey}");
+        _console.WriteLine($"[6] Number of confirmations:               {networkSettings.NumberOfConfirmations}");
+        _console.WriteLine("");
+        _console.ResetColor();
+
+        _console.ForegroundColor = ConsoleColor.Magenta;
+        _console.WriteLine("To skip options, press the enter key.");
         _console.WriteLine("");
         _console.ResetColor();
 
         var env = Prompt.GetString("Environment:", null, ConsoleColor.Green);
-        var walletEndpoint = Prompt.GetString("Wallet endpoint:", null, ConsoleColor.Green);
+        var walletEndpoint = Prompt.GetString("Wallet endpoint:", "http://127.0.0.1:8001", ConsoleColor.Green);
         var node = Prompt.GetString("Node:", null, ConsoleColor.Green);
         var nodePort = Prompt.GetInt("Node Port:", 7946, ConsoleColor.Green);
         var nodePk = Prompt.GetString("Node public key:", null, ConsoleColor.Green);
@@ -107,7 +112,7 @@ public class WalletAppSettingsCommand : Command
             _console.WriteLine("New node detected. Wallet shutting down. Please restart the wallet for the new safeguard download.");
             Environment.Exit(0);
         }
-        
+
         if (!previousPk.Equals(networkSettings.RemoteNodePubKey))
         {
             _console.WriteLine("New node detected. Wallet shutting down. Please restart the wallet for the new safeguard download.");
