@@ -24,7 +24,7 @@ namespace Cli.Configuration
         public class ConfigurationClass
         {
             public string Environment { get; set; }
-            public IPAddress WalletIPAddress { get; set; }
+            public IPAddress WalletIPAddress { get; set; } = IPAddress.Parse("127.0.0.1");
             public IPAddress NodeIPAddress { get; set; }
             public ushort NodePort { get; set; } = 7946;
             public ushort WalletPort { get; set; } = 8001;
@@ -140,7 +140,7 @@ namespace Cli.Configuration
             if (choiceNode.Equals(optionNodeTangram))
             {
                 Configuration.NodeIPAddress = _nodeTangramIPAddress;
-                return StepWalletIPAddress();
+                return StepNodePort();
             }
 
             if (choiceNode.Equals(optionNodeCustom))
@@ -202,110 +202,110 @@ namespace Cli.Configuration
             if (success)
             {
                 Configuration.NodePort = port;
-                if (Configuration.NodeIPAddress.Equals(IPAddress.Loopback))
-                {
-                    return StepWalletPort();
-                }
+                // if (Configuration.NodeIPAddress.Equals(IPAddress.Loopback))
+                // {
+                //     return StepWalletPort();
+                // }
 
-                return StepWalletIPAddress();
+                return StepWalletNodePubKey();
             }
 
             return success;
         }
 
-        readonly UserInterfaceChoice _optionIpAddressManual = new("Manually enter IP address");
-        readonly UserInterfaceChoice _optionIpAddressAuto = new("Find IP address automatically");
-
-        private bool StepWalletIPAddress()
-        {
-            var section = new UserInterfaceSection(
-                "Public IP address",
-                "Your wallet needs to be able to communicate with the remote node. For this you need to " +
-                "broadcast your public IP address, which is in many cases not the same as your local network " +
-                "address. Addresses starting with 10.x.x.x, 172.16.x.x and 192.168.x.x are local addresses and " +
-                "should not be broadcast to the network. When you do not know your public IP address, you can find " +
-                "it by searching for 'what is my ip address'. This does not work if you configure a remote wallet, " +
-                "like for example a VPS. You can also choose to find your public IP address automatically.",
-                new[]
-                {
-                    _optionIpAddressManual,
-                    _optionIpAddressAuto
-                });
-
-            var choiceIpAddress = _userInterface.Do(section);
-
-            if (choiceIpAddress.Equals(_optionIpAddressManual))
-            {
-                return StepWalletIpAddressManual();
-            }
-
-            return choiceIpAddress.Equals(_optionIpAddressAuto) && StepWalletIpAddressAuto();
-        }
-
-        private bool StepWalletIpAddressManual()
-        {
-            var section = new TextInput<IPAddress>(
-                "Enter IP address (e.g. 123.1.23.123)",
-                ipAddress => IPAddress.TryParse(ipAddress, out _),
-                ipAddress => IPAddress.Parse(ipAddress));
-
-            var success = _userInterface.Do(section, out var ipAddress);
-            if (success)
-            {
-                Configuration.WalletIPAddress = IPAddress.Parse("0.0.0.0");
-                return StepWalletPort();
-            }
-
-            return success;
-        }
-
-        private bool StepWalletIpAddressAuto()
-        {
-            while (Configuration.WalletIPAddress == null)
-            {
-                var section = new UserInterfaceSection(
-                    _optionIpAddressAuto.Text,
-                    "Please choose the service to use for automatic IP address detection.",
-                    _ipServices.ToList().Select(service =>
-                        new UserInterfaceChoice(service.ToString())).ToArray());
-
-                var choiceIpAddressService = _userInterface.Do(section);
-                if (choiceIpAddressService.Equals(_optionCancel))
-                {
-                    return false;
-                }
-
-                try
-                {
-                    var selectedIpAddressService = _ipServices
-                        .First(service => service.ToString() == choiceIpAddressService.Text);
-                    Configuration.WalletIPAddress = IPAddress.Parse("0.0.0.0");
-                }
-                catch (Exception)
-                {
-                    // Cannot get IP address; ignore error
-                }
-            }
-
-            return StepWalletPort();
-        }
-
-        private bool StepWalletPort()
-        {
-            var section = new TextInput<ushort>(
-                "Enter wallet API port (e.g. 8001). The port must be different from the node's API port when running on the same system",
-                (string portString) => ushort.TryParse(portString, out _),
-                ushort.Parse);
-            var success = _userInterface.Do(section, out var port);
-            if (!success) return false;
-            if (Configuration.NodeIPAddress.Equals(IPAddress.Loopback) && port == Configuration.NodePort)
-            {
-                return false;
-            }
-
-            Configuration.WalletPort = port;
-            return StepWalletNodePubKey();
-        }
+        // readonly UserInterfaceChoice _optionIpAddressManual = new("Manually enter IP address");
+        // readonly UserInterfaceChoice _optionIpAddressAuto = new("Find IP address automatically");
+        //
+        // private bool StepWalletIPAddress()
+        // {
+        //     var section = new UserInterfaceSection(
+        //         "Public IP address",
+        //         "Your wallet can be accessed remotely. For this you need to " +
+        //         "broadcast your public IP address, which is in many cases not the same as your local network " +
+        //         "address. Addresses starting with 10.x.x.x, 172.16.x.x and 192.168.x.x are local addresses and " +
+        //         "should not be broadcast to the network. When you do not know your public IP address, you can find " +
+        //         "it by searching for 'what is my ip address'. This does not work if you configure a remote wallet, " +
+        //         "like for example a VPS. You can also choose to find your public IP address automatically.",
+        //         new[]
+        //         {
+        //             _optionIpAddressManual,
+        //             _optionIpAddressAuto
+        //         });
+        //
+        //     var choiceIpAddress = _userInterface.Do(section);
+        //
+        //     if (choiceIpAddress.Equals(_optionIpAddressManual))
+        //     {
+        //         return StepWalletIpAddressManual();
+        //     }
+        //
+        //     return choiceIpAddress.Equals(_optionIpAddressAuto) && StepWalletIpAddressAuto();
+        // }
+        //
+        // private bool StepWalletIpAddressManual()
+        // {
+        //     var section = new TextInput<IPAddress>(
+        //         "Enter IP address (e.g. 123.1.23.123)",
+        //         ipAddress => IPAddress.TryParse(ipAddress, out _),
+        //         ipAddress => IPAddress.Parse(ipAddress));
+        //
+        //     var success = _userInterface.Do(section, out var ipAddress);
+        //     if (success)
+        //     {
+        //         Configuration.WalletIPAddress = IPAddress.Parse("0.0.0.0");
+        //         return StepWalletPort();
+        //     }
+        //
+        //     return success;
+        // }
+        //
+        // private bool StepWalletIpAddressAuto()
+        // {
+        //     while (Configuration.WalletIPAddress == null)
+        //     {
+        //         var section = new UserInterfaceSection(
+        //             _optionIpAddressAuto.Text,
+        //             "Please choose the service to use for automatic IP address detection.",
+        //             _ipServices.ToList().Select(service =>
+        //                 new UserInterfaceChoice(service.ToString())).ToArray());
+        //
+        //         var choiceIpAddressService = _userInterface.Do(section);
+        //         if (choiceIpAddressService.Equals(_optionCancel))
+        //         {
+        //             return false;
+        //         }
+        //
+        //         try
+        //         {
+        //             var selectedIpAddressService = _ipServices
+        //                 .First(service => service.ToString() == choiceIpAddressService.Text);
+        //             Configuration.WalletIPAddress = IPAddress.Parse("0.0.0.0");
+        //         }
+        //         catch (Exception)
+        //         {
+        //             // Cannot get IP address; ignore error
+        //         }
+        //     }
+        //
+        //     return StepWalletPort();
+        // }
+        //
+        // private bool StepWalletPort()
+        // {
+        //     var section = new TextInput<ushort>(
+        //         "Enter wallet API port (e.g. 8001). The port must be different from the node's API port when running on the same system",
+        //         (string portString) => ushort.TryParse(portString, out _),
+        //         ushort.Parse);
+        //     var success = _userInterface.Do(section, out var port);
+        //     if (!success) return false;
+        //     if (Configuration.NodeIPAddress.Equals(IPAddress.Loopback) && port == Configuration.NodePort)
+        //     {
+        //         return false;
+        //     }
+        //
+        //     Configuration.WalletPort = port;
+        //     return StepWalletNodePubKey();
+        // }
 
         /// <summary>
         /// 
@@ -314,7 +314,7 @@ namespace Cli.Configuration
         private bool StepWalletNodePubKey()
         {
             var section = new TextInput<string>(
-                "Enter the remote node public key from the list of the peers http://143.198.64.156:48655/member/peers (choose one)\n " +
+                "If you are connecting to Tangram team-managed node then enter the remote node public key from http://143.198.64.156:48655/member/peer\n " +
                 "   Or if you have a node running, use your public key instead",
                 pubkey => !string.IsNullOrEmpty(pubkey), pubkey => pubkey);
             var success = _userInterface.Do(section, out var key);
