@@ -19,10 +19,24 @@ do
         --help)
           echo "  Install script arguments:"
           echo
+          echo "    --runasuser                   : use this user account instead of creating a new one"
+          echo "    --runasgroup                  : use this user group instead of creating a new one"
+          echo "    --no-service                  : do not install wallet as a service"                    
           echo "    --uninstall                   : uninstall wallet"
           echo
           exit 0
           ;;
+         --runasuser)
+            CUSTOM_USER=$2
+            shift
+            ;;
+        --runasgroup)
+            CUSTOM_GROUP=$2
+            shift
+            ;;
+        --no-service)
+            IS_NO_SERVICE=true
+            ;;          
         --uninstall)
             IS_UNINSTALL=true
             ;;
@@ -44,7 +58,14 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   IS_MACOS=true
   ARCHITECTURE_UNIFIED="osx-x64"
 
-TANGRAM_BAMBOO_VERSION=$(curl --silent "https://api.github.com/repos/tangramproject/bamboo/releases/latest" | grep -w '"tag_name": "v.*"' | cut -f2 -d ":" | cut -f2 -d "\"")
+  TANGRAM_BAMBOO_VERSION=$(curl --silent "https://api.github.com/repos/tangramproject/bamboo/releases/latest" | grep -w '"tag_name": "v.*"' | cut -f2 -d ":" | cut -f2 -d "\"")
+  TANGRAM_BAMBOO_GROUP="tangram_xtgmwallet"
+  TANGRAM_BAMBOO_USER="_tangram_xtgmwallet"
+
+  LAUNCHD_SERVICE_PATH="/Library/LaunchDaemons/"
+  TANGRAM_BAMBOO_LAUNCHD_SERVICE="tangram-bamboo.plist"
+  TANGRAM_BAMBOO_LAUNCHD_SERVICE_URL="https://raw.githubusercontent.com/tangramproject/bamboo/master/install/macos/${TANGRAM_BAMBOO_LAUNCHD_SERVICE}"
+
 
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   IS_LINUX=true
@@ -73,7 +94,16 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     IS_DEBIAN_BASED=true
   fi
 
+  INIT=$(ps --no-headers -o comm 1)
+  
   TANGRAM_BAMBOO_VERSION=$(curl --silent "https://api.github.com/repos/tangramproject/bamboo/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
+  TANGRAM_BAMBOO_GROUP="tangram-xtgmwallet"
+  TANGRAM_BAMBOO_USER="tangram-xtgmwallet"
+
+  SYSTEMD_SERVICE_PATH="/etc/systemd/system/"
+  TANGRAM_BAMBOO_SYSTEMD_SERVICE="tangram-bamboo.service"
+  TANGRAM_BAMBOO_SYSTEMD_SERVICE_URL="https://raw.githubusercontent.com/tangramproject/bamboo/master/install/linux/${TANGRAM_BAMBOO_SYSTEMD_SERVICE}"
+  
 
 else
   echo "Unsupported OS type ${OSTYPE}"
@@ -302,10 +332,205 @@ download_archive() {
   printf "%b  %b Downloaded archive %s\n" "${OVER}" "${TICK}" "${ARCHIVE}"
 }
 
+install_systemd_service() {
+  printf "\n  %b Downloading systemd service file" "${INFO}"
+
+  if [ "${HAS_CURL}" = true ]; then
+    curl -s -L -o "/tmp/${TANGRAM_BAMBOO_SYSTEMD_SERVICE}" "${TANGRAM_BAMBOO_SYSTEMD_SERVICE_URL}"
+  else
+    wget -q -O "/tmp/${TANGRAM_BAMBOO_SYSTEMD_SERVICE}" "${TANGRAM_BAMBOO_SYSTEMD_SERVICE_URL}"
+  fi
+
+  printf "%b  %b Downloaded systemd service file\n" "${OVER}" "${TICK}"
+
+  printf "  %b Installing systemd service file" "${INFO}"
+
+  CUSER=${TANGRAM_BAMBOO_USER}
+  if [ $CUSTOM_USER ]; then
+      CUSER=${CUSTOM_USER}
+      sed -ie "s/User=.*/User=${CUSER}/" "/tmp/${TANGRAM_BAMBOO_SYSTEMD_SERVICE}"
+  fi
+  CGROUP=${TANGRAM_BAMBOO_GROUP}
+  if [ $CUSTOM_GROUP ]; then
+      CGROUP=${CUSTOM_GROUP}
+      sed -ie "s/Group=.*/Group=${CGROUP}/" "/tmp/${TANGRAM_BAMBOO_SYSTEMD_SERVICE}"
+  fi
+  sudo install -m 755 -o "${CUSER}" -g "${CGROUP}" "/tmp/${TANGRAM_BAMBOO_SYSTEMD_SERVICE}" "${SYSTEMD_SERVICE_PATH}${TANGRAM_BAMBOO_SYSTEMD_SERVICE}"
+
+  printf "%b  %b Installed systemd service file\n" "${OVER}" "${TICK}"
+
+  printf "  %b Removing temporary systemd service file" "${INFO}"
+  rm "/tmp/${TANGRAM_BAMBOO_SYSTEMD_SERVICE}"
+  printf "%b  %b Removed temporary systemd service file\n" "${OVER}" "${TICK}"
+
+  printf "  %b Reloading systemd daemon" "${INFO}"
+  sudo systemctl daemon-reload
+  printf "%b  %b Reloading systemd daemon\n" "${OVER}" "${TICK}"
+
+  printf "  %b Enabling systemd service" "${INFO}"
+  sudo systemctl enable "${TANGRAM_BAMBOO_SYSTEMD_SERVICE}" &> /dev/null
+  printf "%b  %b Enabled systemd service\n" "${OVER}" "${TICK}"
+
+  printf "  %b Starting systemd service" "${INFO}"
+  sudo systemctl start "${TANGRAM_BAMBOO_SYSTEMD_SERVICE}" > /dev/null
+  printf "%b  %b Started systemd service\n" "${OVER}" "${TICK}"
+}
+
+install_launchd_service() {
+  printf "\n  %b Downloading launchd service file" "${INFO}"
+
+  if [ "${HAS_CURL}" = true ]; then
+    curl -s -L -o "/tmp/${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" "${TANGRAM_BAMBOO_LAUNCHD_SERVICE_URL}"
+  else
+    wget -q -O "/tmp/${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" "${TANGRAM_BAMBOO_LAUNCHD_SERVICE_URL}"
+  fi
+
+  printf "%b  %b Downloaded launchd service file\n" "${OVER}" "${TICK}"
+
+  printf "  %b Installing launchd service file" "${INFO}"
+
+  sudo install -m 755 -o "${TANGRAM_BAMBOO_USER}" -g "${TANGRAM_BAMBOO_GROUP}" "/tmp/${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" "${LAUNCHD_SERVICE_PATH}${TANGRAM_BAMBOO_LAUNCHD_SERVICE}"
+
+  printf "%b  %b Installed launchd service file\n" "${OVER}" "${TICK}"
+
+  printf "  %b Removing temporary launchd service file" "${INFO}"
+  rm "/tmp/${TANGRAM_BAMBOO_LAUNCHD_SERVICE}"
+  printf "%b  %b Removed temporary launchd service file\n" "${OVER}" "${TICK}"
+
+  printf "  %b Loading launchd service" "${INFO}"
+  sudo launchctl load "${LAUNCHD_SERVICE_PATH}${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" &> /dev/null
+  printf "%b  %b Loaded launchd service\n" "${OVER}" "${TICK}"
+
+  printf "  %b Starting launchd service" "${INFO}"
+  sudo launchctl start "${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" > /dev/null
+  printf "%b  %b Started launchd service\n" "${OVER}" "${TICK}"
+}
+
+stop_service() {
+  if [ "${IS_LINUX}" = true ]; then
+    if [ "${INIT}" = "systemd" ]; then
+      if [ $(systemctl is-active "${TANGRAM_BAMBOO_SYSTEMD_SERVICE}") = "active" ]; then
+        printf "\n"
+        printf "  %b Stopping systemd service" "${INFO}"
+        sudo systemctl stop "${TANGRAM_BAMBOO_SYSTEMD_SERVICE}" >/dev/null
+        printf "%b  %b Stopped systemd service\n" "${OVER}" "${TICK}"
+      fi
+    fi
+  elif [ "${IS_MACOS}" = true ]; then
+    if [ -f "${LAUNCHD_SERVICE_PATH}${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" ]; then
+      if [ $(sudo launchctl list | grep "${TANGRAM_BAMBOO_LAUNCHD_SERVICE}") ]; then
+        printf "\n"
+        printf "  %b Stopping launchd service" "${INFO}"
+        sudo launchctl stop "${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" >/dev/null
+        printf "%b  %b Stopped systemd service\n" "${OVER}" "${TICK}"
+      fi
+    fi
+  fi
+}
+
+user_create_linux() {
+  echo groupadd "$1"
+  sudo groupadd -f "$1" >/dev/null
+  if [ -f "/etc/arch-release" ]; then
+    sudo useradd --system --gid $(getent group "$1" | cut -d: -f3) --no-create-home "$2" >/dev/null
+  else
+    sudo adduser --system --gid $(getent group "$1" | cut -d: -f3) --no-create-home "$2" >/dev/null
+  fi
+}
+
+user_create_macos() {
+  for (( uid = 500;; --uid )) ; do
+    if ! id -u $uid &>/dev/null; then
+      if ! dscl /Local/Default -ls Groups gid | grep -q [^0-9]$uid\$ ; then
+        sudo dscl /Local/Default -create Groups/"$1" >/dev/null
+        sudo dscl /Local/Default -create Groups/"$1" Password \* >/dev/null
+        sudo dscl /Local/Default -create Groups/"$1" PrimaryGroupID $uid >/dev/null
+        sudo dscl /Local/Default -create Groups/"$1" RealName "$1" >/dev/null
+        sudo dscl /Local/Default -create Groups/"$1" RecordName _"$1" "$1" >/dev/null
+
+        sudo dscl /Local/Default -create Users/"$2" >/dev/null
+        sudo dscl /Local/Default -create Users/"$2" PrimaryGroupID $uid
+        sudo dscl /Local/Default -create Users/"$2" UniqueID $uid >/dev/null
+        USER_CREATED=true
+        break
+      fi
+    fi
+  done
+
+  if [ ! "${USER_CREATED}" = true ]; then
+    printf "\n  %b Could not create user\n\n" "${CROSS}"
+    exit 1
+  fi
+}
+
+user_create() {
+  if [ $CUSTOM_USER ]; then
+      printf "\n  %b Checking if user %s exists" "${INFO}" "${CUSTOM_USER}"
+      if [ "${IS_LINUX}" = true ]; then
+        if id "${CUSTOM_USER}" &>/dev/null; then
+          printf "%b  %b User %s exists\n" "${OVER}" "${TICK}" "${CUSTOM_USER}"
+        else
+          printf "%b  %b User %s does not exist\n" "${OVER}" "${CROSS}" "${CUSTOM_USER}"
+          exit 1
+        fi
+      elif [ "${IS_MACOS}" = true ]; then
+        if dscl /Local/Default read /Users/"${TANGRAM_BAMBOO_USER}" &>/dev/null; then
+          printf "%b  %b User %s exists\n" "${OVER}" "${TICK}" "${CUSTOM_USER}"
+        else
+          printf "%b  %b User %s does not exist\n" "${OVER}" "${CROSS}" "${CUSTOM_USER}"
+          exit 1
+        fi
+      fi
+  else
+      printf "\n  %b Checking if user %s exists" "${INFO}" "${TANGRAM_BAMBOO_USER}"
+
+      if [ "${IS_LINUX}" = true ]; then
+        if id "${TANGRAM_BAMBOO_USER}" &>/dev/null; then
+          printf "%b  %b User %s exists\n" "${OVER}" "${TICK}" "${TANGRAM_BAMBOO_USER}"
+          USER_EXISTS=true
+        fi
+      elif [ "${IS_MACOS}" = true ]; then
+        if dscl /Local/Default read /Users/"${TANGRAM_BAMBOO_USER}" &>/dev/null; then
+          printf "%b  %b User %s exists\n" "${OVER}" "${TICK}" "${TANGRAM_BAMBOO_USER}"
+          USER_EXISTS=true
+        fi
+      fi
+
+      if [ ! "${USER_EXISTS}" = true ]; then
+        printf "%b  %b User %s does not exist\n" "${OVER}" "${CROSS}" "${TANGRAM_BAMBOO_USER}"
+        printf "  %b Creating user %s" "${INFO}" "${TANGRAM_BAMBOO_USER}"
+
+        if [ "${IS_LINUX}" = true ]; then
+          user_create_linux "${TANGRAM_BAMBOO_GROUP}" "${TANGRAM_BAMBOO_USER}"
+        elif [ "${IS_MACOS}" = true ]; then
+          user_create_macos "${TANGRAM_BAMBOO_GROUP}" "${TANGRAM_BAMBOO_USER}"
+        fi
+
+        printf "%b  %b Created user %s\n" "${OVER}" "${TICK}" "${TANGRAM_BAMBOO_USER}"
+      fi
+  fi
+  if [ $CUSTOM_GROUP ]; then
+      printf "\n  %b Checking if group %s exists" "${INFO}" "${CUSTOM_GROUP}"
+      if [ "${IS_LINUX}" = true ]; then
+        if getent group "${CUSTOM_GROUP}" &>/dev/null; then
+          printf "%b  %b Group %s exists\n" "${OVER}" "${TICK}" "${CUSTOM_GROUP}"
+        else
+          printf "%b  %b Group %s does not exist\n" "${OVER}" "${CROSS}" "${CUSTOM_GROUP}"
+          exit 1
+        fi
+      elif [ "${IS_MACOS}" = true ]; then
+          printf "%b  %b Custom groups not supported yet\n" "${OVER}" "${CROSS}"
+          exit 1
+      fi
+  fi
+}
 
 install_archive() {
   printf "\n  %b Installing archive\n" "${INFO}"
 
+  stop_service
+  user_create
+  
   printf "  %b Unpacking archive to %s" "${INFO}" "${TANGRAM_BAMBOO_TMP_PATH}"
   mkdir -p "${TANGRAM_BAMBOO_TMP_PATH}"
   if [ "${IS_LINUX}" = true ]; then
@@ -326,10 +551,49 @@ install_archive() {
   fi
 
   printf "%b  %b Installed to %s\n" "${OVER}" "${TICK}" "${TANGRAM_BAMBOO_OPT_PATH}"   
-
   printf "  %b Running configuration util" "${INFO}"
   "${TANGRAM_BAMBOO_OPT_PATH}${TANGRAM_BAMBOO_EXECUTABLE}" --configure
   printf "%b  %b Run configuration util\n\n" "${OVER}" "${TICK}"
+
+  if [ "${IS_NO_SERVICE}" = true ]; then
+      printf "  %b Not installing service\n" "${CROSS}"
+    else
+      if [ "${IS_LINUX}" = true ]; then
+        if [ "${INIT}" = "systemd" ]; then
+          if [ "${IS_NON_INTERACTIVE}" = true ]; then
+            printf "  %b Using default systemd service\n" "${TICK}"
+            install_systemd_service
+          else
+            if whiptail --title "systemd service" --yesno "To run the wallet as a service, it is recommended to configure the wallet as a systemd service.\\n\\nWould you like to use the default systemd service configuration provided with tangram-xtgmwallet?" "${7}" "${c}"; then
+              printf "  %b Using default systemd service\n" "${TICK}"
+              install_systemd_service
+            else
+              printf "  %b Not using default systemd service%s\n" "${CROSS}"
+            fi
+          fi
+        elif [ "${INIT}" = "init" ]; then
+          printf "  %b No tangram-xtgmwallet init script available yet\n" "${CROSS}"
+  
+        else
+          printf "\n"
+          printf "  %b Unknown system %s. Please report this issue on\n" "${CROSS}" "${INIT}"
+          printf "      https://github.com/tangramproject/bamboo/issues/new"
+        fi
+      elif [ "${IS_MACOS}" = true ]; then
+        if [ "${IS_NON_INTERACTIVE}" = true ]; then
+          printf "  %b Using default launchd service\n" "${TICK}"
+          install_launchd_service
+        else
+          if [ $(osascript -e 'button returned of (display dialog "To run the wallet as a service, it is recommended to configure the wallet as a launchd service. Would you like to use the default launchd service configuration provided with tangram-xtgmwallet?" buttons {"No", "Yes"})') = 'Yes' ]; then
+            printf "  %b Using default launchd service\n" "${TICK}"
+            install_launchd_service
+          else
+            printf "  %b Not using default launchd service%s\n" "${CROSS}"
+          fi
+        fi
+      fi
+    fi
+  
 }
 
 
@@ -350,8 +614,58 @@ finish() {
 if [ "${IS_UNINSTALL}" = true ]; then
   printf "  %b Uninstalling\n\n" "${INFO}"
 
+  stop_service
+  
+  if [ "${IS_LINUX}" = true ]; then
+    if [ "${INIT}" = "systemd" ]; then
+      if [ -f "${SYSTEMD_SERVICE_PATH}${TANGRAM_BAMBOO_SYSTEMD_SERVICE}" ]; then
+        if [ $(systemctl is-enabled "${TANGRAM_BAMBOO_SYSTEMD_SERVICE}") = "enabled" ]; then
+          printf "  %b Disabling service" "${INFO}"
+          sudo systemctl disable "${TANGRAM_BAMBOO_SYSTEMD_SERVICE}" >/dev/null 2>&1
+          printf "%b  %b Disabled service\n" "${OVER}" "${TICK}"
+        fi
+
+        printf "  %b Removing service" "${INFO}"
+        sudo rm -f "${SYSTEMD_SERVICE_PATH}${TANGRAM_BAMBOO_SYSTEMD_SERVICE}"
+        printf "%b  %b Removed service\n" "${OVER}" "${TICK}"
+
+        printf "  %b Reloading systemd daemon" "${INFO}"
+        sudo systemctl daemon-reload
+        printf "%b  %b Reloading systemd daemon\n" "${OVER}" "${TICK}"
+      fi
+    fi
+  elif [ "${IS_MACOS}" = true ]; then
+    if [ -f "${LAUNCHD_SERVICE_PATH}${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" ]; then
+      if [ sudo launchctl list | grep "${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" ]; then
+        printf "  %b Unloading service" "${INFO}"
+        sudo launchctl unload "${LAUNCHD_SERVICE_PATH}${TANGRAM_BAMBOO_LAUNCHD_SERVICE}" >/dev/null 2>&1
+        printf "%b  %b Unloaded service\n" "${OVER}" "${TICK}"
+      fi
+
+      printf "  %b Removing service" "${INFO}"
+      sudo rm -f "${LAUNCHD_SERVICE_PATH}${TANGRAM_BAMBOO_LAUNCHD_SERVICE}"
+      printf "%b  %b Removed service\n" "${OVER}" "${TICK}"
+    fi
+  fi  
+
   sudo rm -rf "${TANGRAM_BAMBOO_OPT_PATH}"
   sudo rm -f "${TANGRAM_BAMBOO_SYMLINK_PATH}${TANGRAM_BAMBOO_EXECUTABLE}"
+
+ if [ "${IS_LINUX}" = true ]; then
+    if getent passwd "${TANGRAM_BAMBOO_USER}" >/dev/null; then
+      printf "  %b Removing user" "${INFO}"
+      sudo userdel "${TANGRAM_BAMBOO_USER}" > /dev/null
+      # group is remove implicitly
+      printf "%b  %b Removed user\n" "${OVER}" "${TICK}"
+    fi
+  elif [ "${IS_MACOS}" = true ]; then
+    if dscl /Local/Default read /Users/"${TANGRAM_BAMBOO_USER}" &>/dev/null; then
+      printf "  %b Removing user" "${INFO}"
+      sudo dscl /Local/Default -delete /Users/"${TANGRAM_BAMBOO_USER}" >/dev/null
+      sudo dscl /Local/Default -delete /Groups/"${TANGRAM_BAMBOO_GROUP}" >/dev/null
+      printf "%b  %b Removed user\n" "${OVER}" "${TICK}"
+    fi
+  fi
 
   printf "\n\n  %b Uninstall succesful\n\n" "${DONE}"
 

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>tangram-bamboo</string>
+	<key>ServiceDescription</key>
+	<string>tangram bamboo daemon</string>
+	<key>Program</key>
+	<string>/opt/tangram/bamboo/clibamwallet</string>
+	<key>WorkingDirectory</key>
+	<string>/opt/tangram/bamboo</string>
+	<key>UserName</key>
+	<string>_tangram_xtgmwallet</string>
+	<key>GroupName</key>
+	<string>tangram_xtgmwallet</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>ProcessType</key>
+	<string>Backgroup</string>
+</dict>
+</plist>
