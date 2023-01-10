@@ -162,7 +162,7 @@ namespace Cli.Commands.CmdLine
                                 var message =
                                     $"Available Balance: [{(balanceResult.Item1 as IList<BalanceSheet>).Last().Balance}] " +
                                     $"TxID: ** {walletTransaction.Transaction.TxnId.ByteToHex()} ** " +
-                                    $"Tx size: [{walletTransaction.Transaction.GetSize() / 1024}kB]";
+                                    $"Tx size: [{walletTransaction.Transaction.GetSize() * 0.001}kB]";
                                 activeSession.SessionId = Guid.NewGuid();
                                 spinner.Succeed(message);
                             }
