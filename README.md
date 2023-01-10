@@ -25,18 +25,30 @@
 For quick installation on Linux and macOS, execute the following command:
 
 ```shell
-bash <(curl -sSL https://raw.githubusercontent.com/tangramproject/bamboo/master/install/install.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/tangramproject/bamboo/master/install/install.sh) --no-service
 ```
 
 The following parameters can be supplied:
 
 `--help`
 Display help
-  
+ 
+Linux Only 
+
+Running the wallet as a service:
+> Remember to change the username
+
+For example:
+
+```shell
+bash <(curl -sSL https://raw.githubusercontent.com/tangramproject/bamboo/master/install/install.sh) --runasuser <username> --runasgroup users
+```
+
+Linux and macOS
+
 `--uninstall`
 Uninstall wallet
 
-  
 For example:
 
 ```shell
