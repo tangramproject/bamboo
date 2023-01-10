@@ -17,7 +17,7 @@ namespace BAMWallet.Model
         [IgnoreMember][BsonId] public Guid Id { get; set; }
         [Key(0)] public byte[] TxnId { get; set; }
         [Key(1)] public Bp[] Bp { get; set; }
-        [Key(2)] public int Ver { get; set; } = 2;
+        [Key(2)] public int Ver { get; set; } = 3;
         [Key(3)] public int Mix { get; set; } = 22;
         [Key(4)] public Vin[] Vin { get; set; }
         [Key(5)] public Vout[] Vout { get; set; }
@@ -74,7 +74,7 @@ namespace BAMWallet.Model
                     .Append(output.N)
                     .Append(output.P)
                     .Append(output.S ?? Array.Empty<byte>())
-                    .Append(output.T.ToString())
+                    .Append(Enum.GetName(output.T))
                     .Append(output.D ?? Array.Empty<byte>());
             }
 
@@ -95,7 +95,9 @@ namespace BAMWallet.Model
                     .Append(Vtime.M)
                     .Append(Vtime.N)
                     .Append(Vtime.S)
-                    .Append(Vtime.W);
+                    .Append(Vtime.W)
+                    .Append(Vtime.T)
+                    .Append(Vtime.K);
             }
 
             return ts.ToArray();

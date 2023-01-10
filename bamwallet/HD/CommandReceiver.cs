@@ -462,9 +462,9 @@ namespace BAMWallet.HD
                     x = -x;
                 }
 
-                var size = transaction.GetSize() / 1024;
+                var size = transaction.GetSize() * 0.001M;
                 var timer = new Stopwatch();
-                var t = (int)(delay * decimal.Round(size, 2, MidpointRounding.ToZero) * 600 * (decimal)1.5);
+                var t = (int)(delay * decimal.Round(size, 0, MidpointRounding.ToZero) * 600 * 1.5M);
                 timer.Start();
                 var nonce = Cryptography.Sloth.Eval(t, x);
                 timer.Stop();
@@ -498,7 +498,8 @@ namespace BAMWallet.HD
                     N = nonce.ToBytes(),
                     W = timer.Elapsed.Ticks,
                     L = lockTime,
-                    S = new Script(Op.GetPushOp(lockTime), OpcodeType.OP_CHECKLOCKTIMEVERIFY).ToString().ToBytes()
+                    S = new Script(Op.GetPushOp(lockTime), OpcodeType.OP_CHECKLOCKTIMEVERIFY).ToString().ToBytes(),
+                    T = delay
                 };
             }
             catch (Exception ex)
@@ -1506,6 +1507,7 @@ namespace BAMWallet.HD
                 tx.Vtime = generateTransactionTime.Result;
             }
 
+            tx.Vtime.K = (int)(tx.GetSize() * 0.001M).ConvertToUInt32();
             tx.TxnId = tx.ToHash();
             walletTransaction.Transaction = tx;
             walletTransaction.State = WalletTransactionState.WaitingConfirmation;
@@ -1709,7 +1711,6 @@ namespace BAMWallet.HD
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="session"></param>
         /// <param name="stakeCredentialsRequest"></param>
         /// <param name="privateKey"></param>
         /// <param name="token"></param>

@@ -14,5 +14,7 @@ namespace BAMWallet.Model
         [Key(3)] public int I { get; set; }
         [Key(4)] public byte[] S { get; set; }
         [Key(5)] public long L { get; set; }
+        [Key(6)] public int T { get; set; }
+        [Key(7)] public int K { get; set; }
     }
 }

@@ -33,7 +33,6 @@ namespace BAMWallet.Rpc
         /// <returns></returns>
         public T Send<T>(params Parameter[] values)
         {
-            SetNetworkingSettings();
             var tcs = new TaskCompletionSource<T>();
             Task.Run(async () =>
             {

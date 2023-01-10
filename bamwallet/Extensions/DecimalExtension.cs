@@ -11,5 +11,12 @@ namespace BAMWallet.Extensions
             var amount = (ulong)(value * Constant.GYin);
             return amount;
         }
+
+        public static uint ConvertToUInt32(this decimal value)
+        {
+            Guard.Argument(value, nameof(value)).NotZero().NotNegative();
+            var amount = (uint)(value * Constant.MYin);
+            return amount;
+        }
     }
 }
