@@ -335,6 +335,53 @@ namespace BAMWallet.Rpc.Controllers
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="credentials"></param>
+        /// <returns></returns>
+        [HttpPost("sync", Name = "Sync")]
+        public IActionResult Sync([FromBody] Credentials credentials)
+        {
+            var session = GetSessionFromCredentials(credentials);
+            if (null == session)
+            {
+                return new BadRequestObjectResult("Invalid identifier or password!");
+            }
+
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd = new RcpWalletSyncCommand(_serviceProvider, ref cmdFinishedEvent, session);
+            SendCommandAndAwaitResponse(cmd);
+            return cmd.Result.Item1 is null
+                ? new BadRequestObjectResult(cmd.Result.Item2)
+                : new ObjectResult(cmd.Result.Item1);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="credentials"></param>
+        /// <returns></returns>
+        [HttpPost("recover", Name = "Recover")]
+        public IActionResult Recover([FromBody] RecoverWithCredentials credentials)
+        {
+            var session = GetSessionFromCredentials(new Credentials
+            { Username = credentials.Username, Passphrase = credentials.Passphrase });
+            if (null == session)
+            {
+                return new BadRequestObjectResult("Invalid identifier or password!");
+            }
+
+            var cmdFinishedEvent = new AutoResetEvent(false);
+            var cmd = new RcpWalletRecoverCommand(credentials.StartIndex, credentials.RecoverCompletely,
+                _serviceProvider, ref cmdFinishedEvent,
+                session);
+            SendCommandAndAwaitResponse(cmd);
+            return cmd.Result.Item1 is null
+                ? new BadRequestObjectResult(cmd.Result.Item2)
+                : new ObjectResult(cmd.Result.Item1);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="session"></param>
         /// <returns></returns>
         private IActionResult GetRwaOutputs(Session session)

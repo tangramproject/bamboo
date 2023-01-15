@@ -11,4 +11,13 @@ namespace BAMWallet.Model
         [Key(0)] public string Username { get; set; }
         [Key(1)] public string Passphrase { get; set; }
     }
+
+    public class RecoverWithCredentials
+    {
+        public string Username { get; set; }
+        public string Passphrase { get; set; }
+        public int StartIndex { get; set; }
+        public bool RecoverCompletely { get; set; }
+
+    }
 }
