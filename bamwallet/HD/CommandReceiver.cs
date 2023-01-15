@@ -535,7 +535,7 @@ namespace BAMWallet.HD
         {
             using var pedersen = new Pedersen();
             var (spend, scan) = Unlock(session);
-            var transactions = SafeguardService.GetTransactions().ToArray();
+            var transactions = SafeguardService.GetTransactions().Where(x => !x.IsLockedOrInvalid()).ToArray();
             if (transactions.Length == 0)
             {
                 return null;
@@ -726,9 +726,10 @@ namespace BAMWallet.HD
         }
 
         /// <summary>
-        ///
+        /// 
         /// </summary>
         /// <param name="address"></param>
+        /// <param name="keyImage"></param>
         /// <returns></returns>
         public (PubKey, StealthPayment) StealthPayment(string address)
         {
@@ -953,11 +954,65 @@ namespace BAMWallet.HD
         /// <param name="paymentId"></param>
         /// <param name="session"></param>
         /// <returns></returns>
-        private static bool AlreadyReceivedPayment(string paymentId, in Session session)
+        private static bool PaymentAlreadyReceived(string paymentId, in Session session)
         {
             var walletTransactions = session.Database.Query<WalletTransaction>().ToList();
             return walletTransactions.FirstOrDefault(x => x.Transaction.TxnId.Xor(paymentId.HexToByte())) != null;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="vInputs"></param>
+        /// <returns></returns>
+        private static bool CheckDuplicateImageKeys(Vin[] vInputs)
+        {
+            Guard.Argument(vInputs, nameof(vInputs)).NotNull().NotEmpty();
+            var dupKeys = new List<byte[]>();
+            foreach (var vin in vInputs)
+            {
+                var vInput = dupKeys.FirstOrDefault(x => x.Xor(vin.Image));
+                if (vInput is not null)
+                {
+                    return true;
+                }
+
+                dupKeys.Add(vin.Image);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="vOutputs"></param>
+        /// <returns></returns>
+        private static bool CheckDuplicateOnetimeKeys(Vout[] vOutputs)
+        {
+            Guard.Argument(vOutputs, nameof(vOutputs)).NotNull().NotEmpty();
+            var dupKeys = new List<byte[]>();
+            foreach (var vout in vOutputs)
+            {
+                var vOutput = dupKeys.FirstOrDefault(x => x.Xor(vout.P));
+                if (vOutput is not null)
+                {
+                    return true;
+                }
+
+                dupKeys.Add(vout.P);
+            }
+
+            return false;
+        }
+
+        // Impl at a later date until finalized.
+        // private static bool CheckEphemeralKeyEqualsImageKey(Vin[] vInputs, Vout[] vOutputs)
+        // {
+        //     Guard.Argument(vInputs, nameof(vInputs)).NotNull().NotEmpty();
+        //     Guard.Argument(vOutputs, nameof(vOutputs)).NotNull().NotEmpty();
+        //     return vInputs.WithIndex().All(vin => vin.item.Image.Xor(vOutputs[vin.index].E));
+        // }
 
         /// <summary>
         ///
@@ -1604,7 +1659,7 @@ namespace BAMWallet.HD
             Guard.Argument(transactionId, nameof(transactionId)).NotNull().NotEmpty().NotWhiteSpace();
             try
             {
-                if (AlreadyReceivedPayment(transactionId, session))
+                if (PaymentAlreadyReceived(transactionId, session))
                 {
                     return new Tuple<object, string>(null, $"Transaction with paymentId: {transactionId} already exists");
                 }
@@ -1614,6 +1669,16 @@ namespace BAMWallet.HD
                 if (transactionResponse is null)
                 {
                     return new Tuple<object, string>(null, $"Failed to find transaction with paymentId: {transactionId}");
+                }
+
+                if (CheckDuplicateImageKeys(transactionResponse.Transaction.Vin))
+                {
+                    return new Tuple<object, string>(null, $"Duplicate Image Key exists with paymentId: {transactionId}");
+                }
+
+                if (CheckDuplicateOnetimeKeys(transactionResponse.Transaction.Vout))
+                {
+                    return new Tuple<object, string>(null, $"Duplicate onetime Key exists with paymentId: {transactionId}");
                 }
 
                 var (spend, scan) = Unlock(session);
@@ -1897,12 +1962,14 @@ namespace BAMWallet.HD
                             var outputs = new List<Vout>();
                             foreach (var v in transaction.Vout)
                             {
-                                Key uncover = spend.Uncover(scan, new PubKey(v.E));
+                                var uncover = spend.Uncover(scan, new PubKey(v.E));
                                 if (uncover.PubKey.ToBytes().Xor(v.P)) outputs.Add(v);
                             }
 
                             if (outputs.Any() != true) continue;
-                            if (AlreadyReceivedPayment(transaction.TxnId.ByteToHex(), session)) continue;
+                            if (PaymentAlreadyReceived(transaction.TxnId.ByteToHex(), session)) continue;
+                            if (CheckDuplicateImageKeys(transaction.Vin)) continue;
+                            if (CheckDuplicateOnetimeKeys(transaction.Vout)) continue;
                             var tx = new WalletTransaction
                             {
                                 Id = session.SessionId,

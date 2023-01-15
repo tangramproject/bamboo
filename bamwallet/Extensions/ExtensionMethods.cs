@@ -42,5 +42,10 @@ namespace BAMWallet.Extensions
         }
 
         public static byte[] ToBytes<T>(this T arg) => Encoding.UTF8.GetBytes(arg.ToString());
+
+        public static IEnumerable<(T item, int index)> WithIndex<T>(this IEnumerable<T> source)
+        {
+            return source.Select((item, index) => (item, index));
+        }
     }
 }
