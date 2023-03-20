@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Threading;
@@ -13,14 +14,14 @@ using BAMWallet.HD;
 
 namespace Cli.Commands.Rpc
 {
-    class RpcWalletListommand : RpcBaseCommand
+    class RpcWalletListCommand : RpcBaseCommand
     {
-        public RpcWalletListommand(IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent)
+        public RpcWalletListCommand(IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent)
             : base(serviceProvider, ref cmdFinishedEvent, null)
         {
         }
 
-        public override Task Execute(Session activeSession = null)
+        public override async Task Execute(Session activeSession = null)
         {
             try
             {
@@ -35,8 +36,6 @@ namespace Cli.Commands.Rpc
             {
                 _cmdFinishedEvent.Set();
             }
-
-            return Task.CompletedTask;
         }
     }
 }
