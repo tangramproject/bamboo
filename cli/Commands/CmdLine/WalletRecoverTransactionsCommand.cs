@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Threading.Tasks;
@@ -12,21 +13,27 @@ using Kurukuru;
 using Cli.Commands.Common;
 using BAMWallet.HD;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.Logging;
 
 namespace Cli.Commands.CmdLine
 {
     [CommandDescriptor("recover", "Recover wallet transactions")]
     public class WalletRecoverTransactionsCommand : Command
     {
-        public WalletRecoverTransactionsCommand(IServiceProvider serviceProvider)
+        private readonly ILogger<WalletRecoverTransactionsCommand> _logger;
+        private readonly ICommandReceiver _commandReceiver;
+
+        public WalletRecoverTransactionsCommand(ILogger<WalletRecoverTransactionsCommand> logger, ICommandReceiver commandReceiver)
             : base(typeof(WalletRecoverTransactionsCommand), serviceProvider, true)
         {
+            _logger = logger;
+            _commandReceiver = commandReceiver;
         }
 
         public override async Task Execute(Session activeSession = null)
         {
             if (activeSession == null) return;
-            var yesno = Prompt.GetYesNo("Restoring your wallet is an expensive operation that requires downloading large amounts of data.\n" +
+            var yesno = await Prompt.GetYesNoAsync("Restoring your wallet is an expensive operation that requires downloading large amounts of data.\n" +
                                         "Please be specific when entering the block height where you know when the first transaction was received.\n" +
                                         "If you don't know the specific block height then please ask for instructions in general: https://discord.gg/6DT3yFhXCB \n" +
                                         "Backup your wallet before starting or if restoring to a clean wallet then no backup is required.\n" +
@@ -35,20 +42,17 @@ namespace Cli.Commands.CmdLine
             {
                 var start = 0;
 
-                var ynRecoverCompletely = Prompt.GetYesNo("All existing transactions will be dropped. Recover all (y) continue (n)", false, ConsoleColor.Red);
-                if (!ynRecoverCompletely)
+                var ynRecoverCompletely = await Prompt.GetYesNoAsync("All existing transactions will be dropped. Recover all (y) continue (n)", false, ConsoleColor.Red);
+                start = ynRecoverCompletely ? 0 : await Prompt.GetIntAsync("Recover from specific blockchain height or leave it blank to recover from your last transaction height:", 0, ConsoleColor.Magenta);
+
+                await Spinner.StartAsync("Recovering transactions ...", async spinner =>
                 {
-                    start = Prompt.GetInt("Recover from specific blockchain height or leave it blank to recover from your last transaction height:", 0, ConsoleColor.Magenta);
-                }
-                await Spinner.StartAsync("Recovering transactions ...", spinner =>
-                {
-                    var (recovered, message) = _commandReceiver.RecoverTransactions(activeSession, start, ynRecoverCompletely);
+                    var (recovered, message) = await _commandReceiver.RecoverTransactions(activeSession, start, ynRecoverCompletely);
                     if (recovered is null)
                     {
+                        _logger.LogError(message);
                         spinner.Fail(message);
                     }
-
-                    return Task.CompletedTask;
                 }, Patterns.Pong);
             }
 
