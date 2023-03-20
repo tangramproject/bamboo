@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Threading;
@@ -18,6 +19,7 @@ namespace Cli.Commands.Rpc
     {
         private WordCount _seedCount;
         private WordCount _passCount;
+        
         public RpcCreateSeedCommand(WordCount seedCount, WordCount passCount, IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent)
             : base(serviceProvider, ref cmdFinishedEvent, null)
         {
@@ -25,29 +27,29 @@ namespace Cli.Commands.Rpc
             _passCount = passCount;
         }
 
-        public override Task Execute(Session activeSession = null)
+        public override async Task Execute(Session activeSession = null)
         {
             try
             {
                 var seed = _commandReceiver.CreateSeed(_seedCount);
                 var passphrase = _commandReceiver.CreateSeed(_passCount);
 
-                Result = new Tuple<object, string>(new
+                Result = (new
                 {
-                    seed,
-                    passphrase
+                    Seed = seed,
+                    Passphrase = passphrase
                 }, String.Empty);
             }
-            catch (Exception ex)
+            catch (SeedCreationException ex)
             {
-                Result = new Tuple<object, string>(null, ex.Message);
+                Result = (null, ex.Message);
             }
             finally
             {
                 _cmdFinishedEvent.Set();
             }
 
-            return Task.CompletedTask;
+            await Task.CompletedTask;
         }
     }
 }
