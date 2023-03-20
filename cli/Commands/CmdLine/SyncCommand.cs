@@ -5,16 +5,16 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
-using BAMWallet.HD;
-using Cli.Commands.Common;
-using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
+using BAMWallet.HD;
 using BAMWallet.Model;
+using Cli.Commands.Common;
 using Kurukuru;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cli.Commands.CmdLine
 {
@@ -32,6 +32,13 @@ namespace Cli.Commands.CmdLine
             {
                 await _commandReceiver.SyncWallet(activeSession);
             }
+
+            
+            await Spinner.StartAsync("Syncing wallet...", async spinner =>
+            {
+                await _commandReceiver.SyncWallet(activeSession);
+                spinner.Succeed("Wallet synced successfully.");
+            });
         }
     }
 }
