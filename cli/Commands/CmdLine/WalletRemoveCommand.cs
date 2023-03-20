@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.IO;
@@ -12,7 +13,6 @@ using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using BAMWallet.Extensions;
 using McMaster.Extensions.CommandLineUtils;
 using Constants = BAMWallet.HD.Constant;
 using BAMWallet.HD;
@@ -35,11 +35,12 @@ namespace Cli.Commands.CmdLine
 
         private void DeleteWallet()
         {
-            if (string.IsNullOrEmpty(_idToDelete))
+            if (string.IsNullOrWhiteSpace(_idToDelete))
             {
                 _console.WriteLine("Wallet name cannot be empty.");
                 return;
             }
+
             var baseDir = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory);
             try
             {
@@ -48,27 +49,29 @@ namespace Cli.Commands.CmdLine
                     var walletsDir = Path.Combine(baseDir, Constants.WALLET_DIR_SUFFIX);
                     if (Directory.Exists(walletsDir))
                     {
-                        var files = Directory.GetFiles(walletsDir, Constants.WALLET_FILE_EXTENSION);
-                        var deleted = false;
+                        using var files = new DisposableEnumerable<string>(Directory.EnumerateFiles(walletsDir, Constants.WALLET_FILE_EXTENSION));
+
                         if (files.Any())
                         {
-                            var walletFile = files.FirstOrDefault(x => string.Equals(Path.GetFileNameWithoutExtension(x), _idToDelete, StringComparison.CurrentCulture));
-                            if (!string.IsNullOrEmpty(walletFile))
+                            if (files.TryGetValue(Path.GetFileNameWithoutExtension(_idToDelete), out var walletFile))
                             {
                                 File.Delete(walletFile);
-                                deleted = true;
+
+                                _console.ForegroundColor = ConsoleColor.Green;
+                                _console.WriteLine($"Wallet with name: {_idToDelete} permanently deleted.");
+                                _console.ForegroundColor = ConsoleColor.White;
                             }
-                        }
-                        if (!deleted)
-                        {
-                            _console.ForegroundColor = ConsoleColor.Red;
-                            _console.WriteLine("Wallet with name: {0} does not exist. Command failed.", _idToDelete);
-                            _console.ForegroundColor = ConsoleColor.White;
+                            else
+                            {
+                                _console.ForegroundColor = ConsoleColor.Red;
+                                _console.WriteLine($"Wallet with name: {_idToDelete} does not exist. Command failed.");
+                                _console.ForegroundColor = ConsoleColor.White;
+                            }
                         }
                         else
                         {
-                            _console.ForegroundColor = ConsoleColor.Green;
-                            _console.WriteLine("Wallet with name: {0} permanently deleted.", _idToDelete);
+                            _console.ForegroundColor = ConsoleColor.Red;
+                            _console.WriteLine($"Wallet with name: {_idToDelete} does not exist. Command failed.");
                             _console.ForegroundColor = ConsoleColor.White;
                         }
                     }
@@ -78,8 +81,10 @@ namespace Cli.Commands.CmdLine
             {
                 Logger.LogException(_console, _logger, ex);
             }
-            _idToDelete = String.Empty;
+
+            _idToDelete = string.Empty;
         }
+
         public WalletRemoveCommand(IServiceProvider serviceProvider, ILogger logger)
             : base(typeof(WalletRemoveCommand), serviceProvider)
         {
@@ -88,24 +93,21 @@ namespace Cli.Commands.CmdLine
             _idToDelete = string.Empty;
         }
 
-        public override Task Execute(Session activeSession = null)
+        public override async Task Execute(Session activeSession = null)
         {
-            var identifier = Prompt.GetString("Wallet Name:", null, ConsoleColor.Yellow);
+            var identifier = await Prompt.GetStringAsync("Wallet Name:", null, ConsoleColor.Yellow).ConfigureAwait(false);
             var isDeletionConfirmed = Prompt.GetYesNo(
                 $"Are you sure you want to delete wallet with Identifier: {identifier}? (This action cannot be undone!)", false, ConsoleColor.Red);
-            if (!isDeletionConfirmed) return Task.CompletedTask;
+            if (!isDeletionConfirmed) return;
+
             _idToDelete = identifier;
+
             if (IsLoggedInWithWallet(identifier.ToSecureString(), activeSession))
             {
                 Logout = true;
-                DeleteWallet();
-            }
-            else
-            {
-                DeleteWallet();
             }
 
-            return Task.CompletedTask;
+            DeleteWallet();
         }
 
         public bool Logout { get; private set; }
