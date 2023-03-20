@@ -1,3 +1,5 @@
+//Improved by ChatGPT
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,52 +8,47 @@ using BAMWallet.HD;
 using BAMWallet.Helper;
 using Cli.Commands.Rpc;
 
-namespace CLi.Commands.Rpc;
-
-public class RpcWalletRestoreCommand : RpcBaseCommand
+namespace Cli.Commands.Rpc
 {
-    private readonly string _walletName;
-    private readonly string _seed;
-    private readonly string _passphrase;
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="walletName"></param>
-    /// <param name="seed"></param>
-    /// <param name="passphrase"></param>
-    /// <param name="serviceProvider"></param>
-    /// <param name="cmdFinishedEvent"></param>
-    public RpcWalletRestoreCommand(string walletName, string seed, string passphrase, IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent)
-        : base(serviceProvider, ref cmdFinishedEvent, null)
+    public class RpcWalletRestoreCommand : RpcBaseCommand
     {
-        _walletName = walletName;
-        _seed = seed;
-        _passphrase = passphrase;
-    }
+        private readonly string _walletName;
+        private readonly string _seed;
+        private readonly string _passphrase;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly AutoResetEvent _cmdFinishedEvent;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="activeSession"></param>
-    public override async Task Execute(Session activeSession = null)
-    {
-        try
+        public RpcWalletRestoreCommand(string walletName, string seed, string passphrase, IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent)
+            : base(serviceProvider, ref cmdFinishedEvent, null)
         {
-            var id = await _commandReceiver.CreateWallet(_seed.ToSecureString(), _passphrase.ToSecureString(), _walletName);
-            Result = new Tuple<object, string>(new
+            _walletName = walletName;
+            _seed = seed;
+            _passphrase = passphrase;
+            _serviceProvider = serviceProvider;
+            _cmdFinishedEvent = cmdFinishedEvent;
+        }
+
+        public override async Task Execute(Session session = null)
+        {
+            try
             {
-                path = Util.WalletPath(id),
-                identifier = id,
-            }, string.Empty);
-        }
-        catch (Exception ex)
-        {
-            Result = new Tuple<object, string>(null, ex.Message);
-        }
-        finally
-        {
-            _cmdFinishedEvent.Set();
+                using var commandReceiver = _serviceProvider.GetRequiredService<ICommandReceiver>();
+                var id = await commandReceiver.CreateWallet(_seed.ToSecureString(), _passphrase.ToSecureString(), _walletName).ConfigureAwait(false);
+                var result = new
+                {
+                    Path = Util.WalletPath(id),
+                    Identifier = id,
+                };
+                Result = new Tuple<object, string>(result, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                Result = new Tuple<object, string>(null, ex.Message);
+            }
+            finally
+            {
+                _cmdFinishedEvent.Set();
+            }
         }
     }
 }
