@@ -1,12 +1,22 @@
-﻿using System;
+// Improved by ChatGPT
+
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Security;
 
 namespace BAMWallet.Extensions
 {
+    /// <summary>
+    /// Provides extension methods for the <see cref="SecureString"/> class.
+    /// </summary>
     public static class SecureStringExtension
     {
+        /// <summary>
+        /// Converts a <see cref="SecureString"/> to a plain text <see cref="string"/>.
+        /// </summary>
+        /// <param name="secureString">The <see cref="SecureString"/> to convert.</param>
+        /// <returns>The plain text <see cref="string"/> representation of the <see cref="SecureString"/>.</returns>
         public static string FromSecureString(this SecureString secureString)
         {
             IntPtr unmanagedString = IntPtr.Zero;
@@ -21,15 +31,16 @@ namespace BAMWallet.Extensions
             }
         }
 
+        /// <summary>
+        /// Converts a <see cref="SecureString"/> to a byte array.
+        /// </summary>
+        /// <param name="s">The <see cref="SecureString"/> to convert.</param>
+        /// <returns>The byte array representation of the <see cref="SecureString"/>.</returns>
         public static byte[] ToArray(this SecureString s)
         {
-            if (s == null)
-                throw new NullReferenceException();
-
             if (s.Length == 0)
                 return Array.Empty<byte>();
 
-            var result = new List<byte>();
             var ptr = SecureStringMarshal.SecureStringToGlobalAllocAnsi(s);
 
             try
@@ -41,7 +52,7 @@ namespace BAMWallet.Extensions
                     if (b == 0)
                         break;
 
-                    result.Add(b);
+                    yield return b;
 
                 } while (true);
             }
@@ -49,7 +60,6 @@ namespace BAMWallet.Extensions
             {
                 Marshal.ZeroFreeGlobalAllocAnsi(ptr);
             }
-            return result.ToArray();
         }
     }
 }
