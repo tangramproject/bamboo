@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Threading.Tasks;
@@ -17,30 +18,26 @@ namespace Cli.Commands.CmdLine
     [CommandDescriptor("logout", "Session ends and locks the wallet")]
     class LogoutCommand : Command
     {
-        private bool _automaticLogout;
+        private readonly bool _automaticLogout;
+
         public LogoutCommand(IServiceProvider serviceProvider, bool automaticLogout = false)
             : base(typeof(LogoutCommand), serviceProvider)
         {
             _automaticLogout = automaticLogout;
         }
-        public override Task Execute(Session activeSession = null)
+
+        public override async Task Execute(Session activeSession = null)
         {
-            if (!_automaticLogout) return Task.CompletedTask;
+            if (!_automaticLogout) return;
+
             _console.ForegroundColor = ConsoleColor.Red;
-            _console.WriteLine("You have been logged out of the wallet due to inactivity. Please login again to use the wallet.");
+            await _console.WriteLineAsync("You have been logged out of the wallet due to inactivity. Please login again to use the wallet.");
             _console.ForegroundColor = ConsoleColor.Cyan;
-            _console.Write("bamboo$ ");
+            await _console.WriteAsync("bamboo$ ");
             _console.ResetColor();
-
-            return Task.CompletedTask;
         }
 
-        public bool AutomaticLogout
-        {
-            get
-            {
-                return _automaticLogout;
-            }
-        }
+        public bool AutomaticLogout => _automaticLogout;
     }
 }
+
