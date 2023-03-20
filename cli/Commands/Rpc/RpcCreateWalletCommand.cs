@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Threading;
@@ -16,6 +17,7 @@ using NBitcoin;
 
 namespace Cli.Commands.Rpc
 {
+    // Create a new wallet using RPC
     class RpcCreateWalletCommand : RpcBaseCommand
     {
         private readonly string _walletName;
@@ -30,20 +32,24 @@ namespace Cli.Commands.Rpc
         {
             try
             {
-                var defaultSeed = _commandReceiver.CreateSeed(NBitcoin.WordCount.TwentyFour);
-                var mnemonic = string.Join(" ", defaultSeed);
-                var defaultPass = _commandReceiver.CreateSeed(NBitcoin.WordCount.Fifteen);
-                var pass = string.Join(" ", defaultPass);
-                var id = await _commandReceiver.CreateWallet(mnemonic.ToSecureString(), pass.ToSecureString(), _walletName);
-                var session = new Session(id.ToSecureString(), pass.ToSecureString());
+                // Create a new seed and passphrase
+                var defaultSeed = _commandReceiver.CreateSeed(WordCount.TwentyFour);
+                var mnemonic = $"{string.Join(" ", defaultSeed)}";
+                var defaultPass = _commandReceiver.CreateSeed(WordCount.Fifteen);
+                var passphrase = $"{string.Join(" ", defaultPass)}";
 
+                // Create a new wallet
+                var walletId = await _commandReceiver.CreateWallet(mnemonic.ToSecureString(), passphrase.ToSecureString(), _walletName);
+                var session = new Session(walletId.ToSecureString(), passphrase.ToSecureString());
+
+                // Set the result
                 Result = new Tuple<object, string>(new
                 {
-                    path = Util.WalletPath(id),
-                    identifier = id,
-                    seed = mnemonic,
-                    passphrase = pass,
-                    address = session.KeySet.StealthAddress
+                    Path = Util.WalletPath(walletId),
+                    Identifier = walletId,
+                    Seed = mnemonic,
+                    Passphrase = passphrase,
+                    Address = session.KeySet.StealthAddress
                 }, string.Empty);
             }
             catch (Exception ex)
