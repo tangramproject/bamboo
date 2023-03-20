@@ -5,11 +5,12 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
-using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using BAMWallet.HD;
 using BAMWallet.Model;
@@ -18,7 +19,8 @@ namespace Cli.Commands.Rpc
 {
     class RpcWalletReceiveCommand : RpcBaseCommand
     {
-        private string _paymentId;
+        private readonly string _paymentId;
+
         public RpcWalletReceiveCommand(string paymentId, IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent, Session session)
             : base(serviceProvider, ref cmdFinishedEvent, session)
         {
@@ -29,40 +31,55 @@ namespace Cli.Commands.Rpc
         {
             try
             {
-                var receivePaymentResult = _commandReceiver.ReceivePayment(_session, _paymentId);
-                if (receivePaymentResult.Item1 is null)
+                using var commandReceiver = new CommandReceiver();
+
+                var receivePaymentResult = commandReceiver.ReceivePayment(_session, _paymentId);
+                if (receivePaymentResult.Item1 == null)
                 {
-                    Result = new Tuple<object, string>(null, receivePaymentResult.Item2);
+                    return Task.FromResult(new RpcWalletReceiveResult { ErrorMessage = receivePaymentResult.Item2 });
                 }
-                else
+
+                var balanceSheetResult = commandReceiver.History(_session);
+                if (balanceSheetResult.Item1 == null)
                 {
-                    var balanceSheetResult = _commandReceiver.History(_session);
-                    if (balanceSheetResult.Item1 is null)
-                    {
-                        Result = new Tuple<object, string>(null, balanceSheetResult.Item2);
-                    }
-                    else
-                    {
-                        var lastSheet = (balanceSheetResult.Item1 as List<BalanceSheet>).Last();
-                        Result = new Tuple<object, string>(new
-                        {
-                            memo = lastSheet.Memo,
-                            received = lastSheet.MoneyIn,
-                            balance = $"{lastSheet.Balance}"
-                        }, balanceSheetResult.Item2);
-                    }
+                    return Task.FromResult(new RpcWalletReceiveResult { ErrorMessage = balanceSheetResult.Item2 });
                 }
+
+                var lastSheet = balanceSheetResult.Item1.LastOrDefault();
+                if (lastSheet == null)
+                {
+                    return Task.FromResult(new RpcWalletReceiveResult { ErrorMessage = "No balance sheets found" });
+                }
+
+                var result = new RpcWalletReceiveResult
+                {
+                    Memo = lastSheet.Memo,
+                    Received = lastSheet.MoneyIn,
+                    Balance = $"{lastSheet.Balance}"
+                };
+
+                return Task.FromResult(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return Task.FromResult(new RpcWalletReceiveResult { ErrorMessage = ex.Message });
             }
             catch (Exception ex)
             {
-                Result = new Tuple<object, string>(null, ex.Message);
+                return Task.FromResult(new RpcWalletReceiveResult { ErrorMessage = "An error occurred while executing the command" });
             }
             finally
             {
                 _cmdFinishedEvent.Set();
             }
-
-            return Task.CompletedTask;
         }
+    }
+
+    class RpcWalletReceiveResult
+    {
+        public string Memo { get; set; }
+        public long Received { get; set; }
+        public string Balance { get; set; }
+        public string ErrorMessage { get; set; }
     }
 }
