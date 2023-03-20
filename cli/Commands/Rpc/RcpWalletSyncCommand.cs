@@ -1,46 +1,37 @@
+// Improved by ChatGPT
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using BAMWallet.HD;
-using Cli.Commands.Rpc;
 
-namespace CLi.Commands.Rpc;
-
-public class RcpWalletSyncCommand : RpcBaseCommand
+namespace Cli.Commands.Rpc
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="serviceProvider"></param>
-    /// <param name="cmdFinishedEvent"></param>
-    /// <param name="session"></param>
-    public RcpWalletSyncCommand(IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent, Session session)
-        : base(serviceProvider, ref cmdFinishedEvent, session)
+    public class RpcWalletSyncCommand : RpcBaseCommand
     {
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="activeSession"></param>
-    public override async Task Execute(Session activeSession = null)
-    {
-        try
+        public RpcWalletSyncCommand(IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent)
+            : base(serviceProvider, ref cmdFinishedEvent)
         {
-            await _commandReceiver.SyncWallet(_session);
+        }
 
-            Result = new Tuple<object, string>(new
+        /// <summary>
+        /// Synchronizes the wallet.
+        /// </summary>
+        public override async Task Execute()
+        {
+            try
             {
-                Success = true
-            }, string.Empty);
-        }
-        catch (Exception ex)
-        {
-            Result = new Tuple<object, string>(null, ex.Message);
-        }
-        finally
-        {
-            _cmdFinishedEvent.Set();
+                await _commandReceiver.SyncWallet();
+                Result = new { Success = true };
+            }
+            catch (Exception ex) when (ex is BAMWalletException || ex is OperationCanceledException)
+            {
+                Result = new { Success = false, ErrorMessage = ex.Message };
+            }
+            finally
+            {
+                _cmdFinishedEvent.Set();
+            }
         }
     }
 }
