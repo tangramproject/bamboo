@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Threading;
@@ -20,7 +21,7 @@ namespace Cli.Commands.Rpc
         {
         }
 
-        public override Task Execute(Session activeSession = null)
+        public override async Task Execute(Session activeSession = null)
         {
             try
             {
@@ -28,14 +29,20 @@ namespace Cli.Commands.Rpc
             }
             catch (Exception ex)
             {
-                Result = new Tuple<object, string>(null, ex.Message);
+                Result = (null, ex.Message);
             }
             finally
             {
                 _cmdFinishedEvent.Set();
             }
 
-            return Task.CompletedTask;
+            await Task.CompletedTask;
+        }
+        
+        public void Dispose()
+        {
+            _cmdFinishedEvent.Dispose();
+            _session.Dispose();
         }
     }
 }
