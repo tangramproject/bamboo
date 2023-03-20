@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Collections.Generic;
@@ -23,59 +24,59 @@ namespace Cli.Commands.CmdLine
     [CommandDescriptor("receive", "Receive a payment")]
     public class WalletReceivePaymentCommand : Command
     {
-        private readonly ILogger _logger;
+        private readonly ILogger<WalletReceivePaymentCommand> _logger;
+        private readonly ICommandReceiver _commandReceiver;
 
-        public WalletReceivePaymentCommand(IServiceProvider serviceProvider)
-            : base(typeof(WalletReceivePaymentCommand), serviceProvider, true)
+        public WalletReceivePaymentCommand(IServiceProvider serviceProvider, ICommandReceiver commandReceiver, ILogger<WalletReceivePaymentCommand> logger)
+            : base(nameof(WalletReceivePaymentCommand), serviceProvider, true)
         {
-            _logger = serviceProvider.GetService<ILogger<WalletReceivePaymentCommand>>();
+            _commandReceiver = commandReceiver;
+            _logger = logger;
         }
 
         public override async Task Execute(Session activeSession = null)
         {
-            if (activeSession != null)
+            if (activeSession == null)
             {
-                var paymentId = Prompt.GetString("TxID:", null, ConsoleColor.Green);
-                if (!string.IsNullOrEmpty(paymentId))
+                return;
+            }
+
+            var paymentId = Prompt.GetString("TxID:", null, ConsoleColor.Green);
+            if (string.IsNullOrEmpty(paymentId))
+            {
+                return;
+            }
+
+            try
+            {
+                var (receive, errorReceive) = await _commandReceiver.ReceivePayment(activeSession, paymentId);
+                if (receive == null)
                 {
-                    await Spinner.StartAsync("Receiving payment...", spinner =>
-                   {
-                       try
-                       {
-                           var (receive, errorReceive) = _commandReceiver.ReceivePayment(activeSession, paymentId);
-                           if (receive is null)
-                           {
-                               spinner.Fail(errorReceive);
-                           }
-                           else
-                           {
-                               var (balances, errorBalances) = _commandReceiver.History(activeSession);
-                               if (balances is not null)
-                               {
-                                   if (balances is IList<BalanceSheet> balanceSheet)
-                                   {
-                                       var transactions = balanceSheet.Where(x => x.TxId == balanceSheet.Last().TxId);
-                                       var received = transactions.Sum(x => Convert.ToDecimal(x.MoneyIn));
-                                       spinner.Succeed(
-                                           $"Memo: {transactions.First().Memo} Received: [{received:F9}] Available Balance: [{balanceSheet.Last().Balance:F9}]");
-                                   }
-                               }
-                               else
-                               {
-                                   spinner.Fail(errorBalances);
-                               }
-                           }
-                       }
-                       catch (Exception ex)
-                       {
-                           _logger.LogError("Message: {@msg}\n Stack: {@trace}", ex.Message, ex.StackTrace);
-                           throw;
-                       }
-                       return Task.CompletedTask;
-                   }, Patterns.Toggle3);
+                    Spinner.Fail(errorReceive);
+                    return;
                 }
+
+                var (balances, errorBalances) = await _commandReceiver.History(activeSession);
+                if (balances == null)
+                {
+                    Spinner.Fail(errorBalances);
+                    return;
+                }
+
+                if (balances is IList<BalanceSheet> balanceSheet)
+                {
+                    var transactions = balanceSheet.Where(x => x.TxId == balanceSheet.Last().TxId);
+                    var received = transactions.Sum(x => x.MoneyIn);
+
+                    Spinner.Succeed(
+                        $"Memo: {transactions.First().Memo} Received: [{received:F9}] Available Balance: [{balanceSheet.Last().Balance:F9}]");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Message: {@msg}\n Stack: {@trace}", ex.Message, ex.StackTrace);
+                throw;
             }
         }
     }
 }
-
