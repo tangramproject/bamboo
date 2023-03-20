@@ -1,3 +1,5 @@
+// Improved by ChatGPT
+
 using System;
 using System.Linq;
 
@@ -10,14 +12,14 @@ namespace BAMWallet.Extensions
             Func<TAttribute, TValue> valueSelector)
             where TAttribute : Attribute
         {
-            var att = type.GetCustomAttributes(
-                typeof(TAttribute), true
-            ).FirstOrDefault() as TAttribute;
-            if (att != null)
+            if (type == null)
             {
-                return valueSelector(att);
+                throw new ArgumentNullException(nameof(type));
             }
-            return default(TValue);
+
+            var att = type.GetCustomAttributes(typeof(TAttribute), true)
+                          .FirstOrDefault(a => a is TAttribute) as TAttribute;
+            return att != null ? valueSelector(att) : default;
         }
     }
 }
