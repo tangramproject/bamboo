@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Linq;
@@ -15,63 +16,61 @@ using BAMWallet.HD;
 using BAMWallet.Model;
 using Cli.Commands.Rpc;
 
-namespace CLi.Commands.Rpc;
-
-public class RcpWalletStakeCommand : RpcBaseCommand
+namespace CLi.Commands.Rpc
 {
-    private readonly StakeCredentials _stakeCredentials;
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="stakeCredentials"></param>
-    /// <param name="serviceProvider"></param>
-    /// <param name="cmdFinishedEvent"></param>
-    /// <param name="session"></param>
-    public RcpWalletStakeCommand(StakeCredentials stakeCredentials, IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent, Session session)
-        : base(serviceProvider, ref cmdFinishedEvent, session)
+    public class RpcWalletStakeCommand : RpcBaseCommand
     {
-        _stakeCredentials = stakeCredentials;
-    }
+        private readonly StakeCredentials _stakeCredentials;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="activeSession"></param>
-    public override async Task Execute(Session activeSession = null)
-    {
-        try
+        public RpcWalletStakeCommand(
+            StakeCredentials stakeCredentials,
+            IServiceProvider serviceProvider,
+            ref AutoResetEvent cmdFinishedEvent,
+            Session session)
+            : base(serviceProvider, ref cmdFinishedEvent, session)
         {
-            await _commandReceiver.SyncWallet(_session);
-            var balances = _commandReceiver.GetBalances(in _session);
-            var listOutputs = balances.Select(balance => new Output
-            {
-                C = balance.Commitment.C,
-                E = balance.Commitment.E,
-                N = balance.Commitment.N,
-                T = balance.Commitment.T
-            }).ToArray();
-
-            var stakeCredentialsRequest = new StakeCredentialsRequest
-            {
-                Seed = _stakeCredentials.Seed.ToByte(),
-                Passphrase = _stakeCredentials.Passphrase.ToByte(),
-                RewardAddress = _stakeCredentials.RewardAddress.ToByte()
-            };
-
-            var messageResponse = await _commandReceiver.SendStakeCredentials(stakeCredentialsRequest,
-                _stakeCredentials.NodePrivateKey.HexToByte(), _stakeCredentials.NodeToken.HexToByte(), in listOutputs);
-
-            var obj = messageResponse.Value.Success == false ? null : new object();
-            Result = new Tuple<object, string>(new { obj }, messageResponse.Value.Message);
+            _stakeCredentials = stakeCredentials;
         }
-        catch (Exception ex)
+
+        public override async Task Execute(Session activeSession = null)
         {
-            Result = new Tuple<object, string>(null, ex.Message);
-        }
-        finally
-        {
-            _cmdFinishedEvent.Set();
+            try
+            {
+                await _commandReceiver.SyncWallet(_session);
+                var balances = _commandReceiver.GetBalances(in _session);
+
+                var listOutputs = balances.Select(balance => new Output
+                {
+                    C = balance.Commitment.C,
+                    E = balance.Commitment.E,
+                    N = balance.Commitment.N,
+                    T = balance.Commitment.T
+                }).ToArray();
+
+                var stakeCredentialsRequest = new StakeCredentialsRequest
+                {
+                    Seed = _stakeCredentials.Seed,
+                    Passphrase = _stakeCredentials.Passphrase,
+                    RewardAddress = _stakeCredentials.RewardAddress
+                };
+
+                var messageResponse = await _commandReceiver.SendStakeCredentials(
+                    stakeCredentialsRequest,
+                    _stakeCredentials.NodePrivateKey.HexToByte(),
+                    _stakeCredentials.NodeToken.HexToByte(),
+                    in listOutputs);
+
+                var obj = messageResponse.Value.Success ? new object() : null;
+                Result = (obj, messageResponse.Value.Message);
+            }
+            catch (Exception ex)
+            {
+                Result = (null, ex.Message);
+            }
+            finally
+            {
+                _cmdFinishedEvent.Set();
+            }
         }
     }
 }
