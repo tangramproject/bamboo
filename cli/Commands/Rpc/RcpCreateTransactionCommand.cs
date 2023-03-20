@@ -5,9 +5,9 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using BAMWallet.HD;
 using BAMWallet.Model;
@@ -16,20 +16,21 @@ namespace Cli.Commands.Rpc
 {
     class RpcCreateTransactionCommand : RpcBaseCommand
     {
-        private WalletTransaction _transaction;
-        public RpcCreateTransactionCommand(ref WalletTransaction tx, IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent, Session session)
-            : base(serviceProvider, ref cmdFinishedEvent, session)
+        private readonly WalletTransaction _transaction;
+
+        public RpcCreateTransactionCommand(WalletTransaction tx)
         {
             _transaction = tx;
         }
 
-        public override Task Execute(Session activeSession = null)
+        public override async Task Execute(Session activeSession = null)
         {
             try
             {
-                Result = _commandReceiver.CreateTransaction(_session, ref _transaction);
+                var result = await _commandReceiver.CreateTransaction(_session, ref _transaction);
+                Result = new Tuple<object, string>(result, null);
             }
-            catch (Exception ex)
+            catch (SpecificException ex)
             {
                 Result = new Tuple<object, string>(null, ex.Message);
             }
@@ -37,8 +38,6 @@ namespace Cli.Commands.Rpc
             {
                 _cmdFinishedEvent.Set();
             }
-
-            return Task.CompletedTask;
         }
     }
 }
