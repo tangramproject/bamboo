@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Threading.Tasks;
@@ -23,25 +24,24 @@ namespace Cli.Commands.CmdLine
         {
         }
 
-        public override Task Execute(Session activeSession = null)
+        public override async Task Execute(Session activeSession = null)
         {
             if (activeSession != null)
             {
-                var request = _commandReceiver.Address(activeSession);
-                if (request.Item1 is null)
+                var request = await _commandReceiver.Address(activeSession);
+
+                if (request.Item1?.ToString() is null)
                 {
                     _console.ForegroundColor = ConsoleColor.Red;
-                    _console.WriteLine($"Address request failed : {request.Item2}");
+                    _console.WriteLine($"Address request failed: {request.Item2}");
                     _console.ForegroundColor = ConsoleColor.White;
-                    return Task.CompletedTask;
+                    return;
                 }
 
                 var table = new ConsoleTable("Address");
-                table.AddRow(request.Item1 as string);
+                table.AddRow(request.Item1);
                 _console.WriteLine($"\n{table}");
             }
-
-            return Task.CompletedTask;
         }
     }
 }
