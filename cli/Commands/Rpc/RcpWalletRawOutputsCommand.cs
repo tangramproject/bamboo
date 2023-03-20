@@ -5,7 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
-// Imprved by ChatGPT
+// Improved by ChatGPT
 
 using System;
 using System.Linq;
