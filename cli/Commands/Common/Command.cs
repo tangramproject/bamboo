@@ -5,6 +5,7 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Threading.Tasks;
@@ -12,36 +13,30 @@ using Microsoft.Extensions.DependencyInjection;
 using BAMWallet.Extensions;
 using BAMWallet.HD;
 using McMaster.Extensions.CommandLineUtils;
+
 namespace Cli.Commands.Common
 {
     public abstract class Command
     {
-        private bool _refreshLogin;
-        protected readonly ICommandReceiver _commandReceiver;
-        protected readonly ICommandService _receiver;
-        protected readonly IConsole _console;
+        protected readonly ICommandReceiver CommandReceiver;
+        protected readonly ICommandService Receiver;
+        protected readonly IConsole Console;
 
         protected Command(Type commandType, IServiceProvider serviceProvider, bool refreshLogin = false)
         {
             Name = commandType.GetAttributeValue((CommandDescriptorAttribute attr) => attr.Name);
             Description = commandType.GetAttributeValue((CommandDescriptorAttribute attr) => attr.Description);
-            _commandReceiver = serviceProvider.GetService<ICommandReceiver>();
-            _receiver = serviceProvider.GetService<ICommandService>();
-            _console = serviceProvider.GetService<IConsole>();
-            _refreshLogin = refreshLogin;
+            CommandReceiver = serviceProvider.GetService<ICommandReceiver>();
+            Receiver = serviceProvider.GetService<ICommandService>();
+            Console = serviceProvider.GetService<IConsole>();
+            RefreshLogin = refreshLogin;
         }
 
         public abstract Task Execute(Session activeSession = null);
 
-        public string Name { get; set; }
-        public string Description { get; set; }
+        public string Name { get; }
+        public string Description { get; }
 
-        public bool RefreshLogin
-        {
-            get
-            {
-                return _refreshLogin;
-            }
-        }
+        public bool RefreshLogin { get; }
     }
 }
