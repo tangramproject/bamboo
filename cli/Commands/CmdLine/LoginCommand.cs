@@ -5,8 +5,10 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using BAMWallet.Extensions;
 using BAMWallet.HD;
@@ -14,41 +16,40 @@ using BAMWallet.Model;
 using Cli.Commands.Common;
 using Kurukuru;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.Logging;
 
 namespace Cli.Commands.CmdLine
 {
     [CommandDescriptor("login", "Provide your wallet name and passphrase")]
     class LoginCommand : Command
     {
-        private Session _session = null;
-        public LoginCommand(IServiceProvider serviceProvider)
+        private readonly ILogger<LoginCommand> _logger;
+        private Session _session;
+
+        public LoginCommand(IServiceProvider serviceProvider, ILogger<LoginCommand> logger)
             : base(typeof(LoginCommand), serviceProvider, true)
         {
+            _logger = logger;
         }
 
         public override async Task Execute(Session activeSession = null)
         {
-            //check if wallet exists, if it does, save session, login and inform command service
             var identifier = Prompt.GetString("Wallet Name:", null, ConsoleColor.Yellow);
             var passphrase = Prompt.GetPasswordAsSecureString("Passphrase:", ConsoleColor.Yellow);
-            if (Session.AreCredentialsValid(identifier.ToSecureString(), passphrase))
+
+            if (await Session.AreCredentialsValidAsync(identifier.ToSecureString(), passphrase))
             {
-                ActiveSession = new Session(identifier.ToSecureString(), passphrase); //will throw if wallet doesn't exist
+                ActiveSession = new Session(identifier.ToSecureString(), passphrase);
 
-                var networkSettings = BAMWallet.Helper.Util.LiteRepositoryAppSettingsFactory().Query<NetworkSettings>().First();
-                if (networkSettings != null)
+                var networkSettings = BAMWallet.Helper.Util.LiteRepositoryAppSettingsFactory().Query<NetworkSettings>().FirstOrDefault();
+
+                if (networkSettings is not null)
                 {
-                    // Quickest way to force users to create a new wallet if the network node doesn't match the pub address.
-                    if (ActiveSession.KeySet.StealthAddress.StartsWith('v') && !networkSettings.Environment.Equals(Constant.Mainnet))
-                    {
-                        _console.WriteLine("Please create a separate wallet for mainnet. Or change the network environment back to mainnet.\nShutting down...");
-                        Environment.Exit(0);
-                        return;
-                    }
+                    var networkEnvironment = ActiveSession.KeySet.StealthAddress.StartsWith('v') ? Constant.Mainnet : Constant.Testnet;
 
-                    if (ActiveSession.KeySet.StealthAddress.StartsWith('w') && !networkSettings.Environment.Equals(Constant.Testnet))
+                    if (networkSettings.Environment != networkEnvironment)
                     {
-                        _console.WriteLine("Please create a separate wallet for testnet. Or change the network environment back to testnet.\nShutting down...");
+                        _logger.LogError("Please create a separate wallet for {Environment}. Or change the network environment back to {Environment}.", networkEnvironment);
                         Environment.Exit(0);
                         return;
                     }
@@ -59,30 +60,21 @@ namespace Cli.Commands.CmdLine
                     await _commandReceiver.SyncWallet(ActiveSession);
                 });
 
-                await Spinner.StartAsync("Scanning for new transactions ...", spinner =>
+                await Spinner.StartAsync("Scanning for new transactions ...", async spinner =>
                 {
-                    _commandReceiver.RecoverTransactions(ActiveSession, 0);
-                    return Task.CompletedTask;
+                    await _commandReceiver.RecoverTransactionsAsync(ActiveSession, 0);
                 });
             }
             else
             {
-                _console.ForegroundColor = ConsoleColor.Red;
-                _console.WriteLine("Access denied. Cannot find a wallet with the given identifier and passphrase.");
-                _console.ForegroundColor = ConsoleColor.Gray;
+                _logger.LogError("Access denied. Cannot find a wallet with the given identifier and passphrase.");
             }
         }
 
         public Session ActiveSession
         {
-            get
-            {
-                return _session;
-            }
-            private set
-            {
-                _session = value;
-            }
+            get => _session;
+            private set => _session = value;
         }
     }
 }
