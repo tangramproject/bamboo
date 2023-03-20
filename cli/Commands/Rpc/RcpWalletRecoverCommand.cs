@@ -1,48 +1,56 @@
+// Improved by ChatGPT 
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using BAMWallet.HD;
 using Cli.Commands.Rpc;
 
-namespace CLi.Commands.Rpc;
-
-public class RcpWalletRecoverCommand : RpcBaseCommand
+namespace Cli.Commands.Rpc
 {
-    private readonly int _start;
-    private readonly bool _recoverCompletely;
-
     /// <summary>
-    /// 
+    /// Command to recover transactions in a wallet.
     /// </summary>
-    /// <param name="start"></param>
-    /// <param name="recoverCompletely"></param>
-    /// <param name="serviceProvider"></param>
-    /// <param name="cmdFinishedEvent"></param>
-    /// <param name="session"></param>
-    public RcpWalletRecoverCommand(int start, bool recoverCompletely, IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent, Session session) : base(serviceProvider, ref cmdFinishedEvent, session)
+    public class RpcWalletRecoverCommand : RpcBaseCommand
     {
-        _start = start;
-        _recoverCompletely = recoverCompletely;
-    }
+        private readonly int _start;
+        private readonly bool _recoverCompletely;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="activeSession"></param>
-    public override async Task Execute(Session activeSession = null)
-    {
-        try
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RpcWalletRecoverCommand"/> class.
+        /// </summary>
+        /// <param name="start">The index of the first transaction to recover.</param>
+        /// <param name="recoverCompletely">Whether to recover all transactions.</param>
+        /// <param name="serviceProvider">The service provider.</param>
+        /// <param name="cmdFinishedEvent">The command finished event.</param>
+        /// <param name="session">The session.</param>
+        public RpcWalletRecoverCommand(int start, bool recoverCompletely, IServiceProvider serviceProvider, ref AutoResetEvent cmdFinishedEvent, Session session)
+            : base(serviceProvider, ref cmdFinishedEvent, session)
         {
-            await _commandReceiver.SyncWallet(_session);
-            Result = _commandReceiver.RecoverTransactions(_session, _start, _recoverCompletely);
+            _start = start;
+            _recoverCompletely = recoverCompletely;
         }
-        catch (Exception ex)
+
+        /// <summary>
+        /// Executes the command to recover transactions in a wallet.
+        /// </summary>
+        /// <param name="activeSession">The active session.</param>
+        public override async Task Execute(Session activeSession = null)
         {
-            Result = new Tuple<object, string>(null, ex.Message);
-        }
-        finally
-        {
-            _cmdFinishedEvent.Set();
+            try
+            {
+                using var wallet = await _commandReceiver.SyncWallet(_session);
+                var result = wallet.RecoverTransactions(_session, _start, _recoverCompletely);
+                Result = new Tuple<object, string>(result, null);
+            }
+            catch (Exception ex)
+            {
+                Result = new Tuple<object, string>(null, ex.Message);
+            }
+            finally
+            {
+                _cmdFinishedEvent.Set();
+            }
         }
     }
 }
