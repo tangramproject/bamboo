@@ -5,10 +5,12 @@
 //
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
+// Improved by ChatGPT
 
 using System;
 using System.Threading.Tasks;
 using BAMWallet.HD;
+
 namespace Cli.Commands.Common
 {
     [CommandDescriptor("exit", "Exit the wallet")]
@@ -19,9 +21,11 @@ namespace Cli.Commands.Common
         {
         }
 
-        public override Task Execute(Session activeSession = null)
+        public override async Task Execute(Session activeSession = null)
         {
-            return Task.CompletedTask;
+            Console.WriteLine("Exiting the wallet application...");
+            await Task.CompletedTask;
+            Environment.Exit(0);
         }
     }
 }
