@@ -5,19 +5,32 @@ using System;
 using System.IO;
 using nng;
 
-namespace BAMWallet.Helper;
-
-public sealed class NngFactorySingleton
+namespace BAMWallet.Helper
 {
-    private static readonly Lazy<NngFactorySingleton> Lazy = new(() => new NngFactorySingleton());
-    public static NngFactorySingleton Instance => Lazy.Value;
-
-    public NngFactorySingleton()
+    public sealed class NngFactorySingleton
     {
-        var managedAssemblyPath = Path.GetDirectoryName(GetType().Assembly.Location);
-        var alc = new NngLoadContext(managedAssemblyPath);
-        Factory = NngLoadContext.Init(alc);
-    }
+        private static readonly Lazy<NngFactorySingleton> Lazy = new(() => new NngFactorySingleton());
+        public static NngFactorySingleton Instance => Lazy.Value;
 
-    public IAPIFactory<INngMsg> Factory { get; }
+        public IAPIFactory<INngMsg> Factory { get; }
+
+        private NngFactorySingleton()
+        {
+            try
+            {
+                // Get the path of the managed assembly
+                var managedAssemblyPath = Path.GetDirectoryName(GetType().Assembly.Location);
+
+                // Initialize the NNG load context
+                var alc = new NngLoadContext(managedAssemblyPath);
+                Factory = NngLoadContext.Init(alc);
+            }
+            catch (Exception ex)
+            {
+                // Handle any exceptions thrown during initialization
+                Console.WriteLine($"Failed to initialize NNG factory: {ex.Message}");
+                throw;
+            }
+        }
+    }
 }
