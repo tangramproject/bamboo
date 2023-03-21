@@ -3,19 +3,34 @@ using Dawn;
 
 namespace BAMWallet.Helper
 {
+    /// <summary>
+    /// Implements the RAII (Resource Acquisition Is Initialization) pattern.
+    /// </summary>
     public sealed class RAIIGuard : IDisposable
     {
-        private Action Unprotect { get; set; }
-        public RAIIGuard(Action protect, Action unprotect)
+        /// <summary>
+        /// Gets the action to unprotect the resource.
+        /// </summary>
+        private Action Unprotect { get; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RAIIGuard"/> class.
+        /// </summary>
+        /// <param name="initializeResource">The action to initialize the resource.</param>
+        /// <param name="unprotect">The action to unprotect the resource.</param>
+        public RAIIGuard(Action initializeResource, Action unprotect)
         {
-            Guard.Argument(protect, nameof(protect)).NotNull();
+            Guard.Argument(initializeResource, nameof(initializeResource)).NotNull();
             Guard.Argument(unprotect, nameof(unprotect)).NotNull();
 
             Unprotect = unprotect;
-            protect();
+            initializeResource();
         }
 
-        void IDisposable.Dispose()
+        /// <summary>
+        /// Disposes the object and unprotects the resource.
+        /// </summary>
+        public void Dispose()
         {
             Unprotect();
         }
