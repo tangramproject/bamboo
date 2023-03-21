@@ -6,7 +6,7 @@
     <LangVersion>10</LangVersion>
     <Platforms>AnyCPU;x64</Platforms>
     <RootNamespace>BAMWallet</RootNamespace>
-    <AssemblyVersion>0.0.52.0</AssemblyVersion>
+    <AssemblyVersion>R1</AssemblyVersion>
     <Company>Tangram</Company>
   </PropertyGroup>
 
