@@ -14,7 +14,7 @@ namespace Cli.UI
 {
     public class TerminalUserInterface : UserInterfaceBase
     {
-        private const int Indent = 4;
+        private const int IndentSize = 4;
 
         public override UserInterfaceChoice Do(UserInterfaceSection section)
         {
@@ -22,24 +22,19 @@ namespace Cli.UI
             {
                 Console.Clear();
                 PrintHeader(section.Title);
-                Print(section.Description, Indent);
+                Print(section.Description, IndentSize);
 
                 Console.WriteLine();
-                if (section.Choices == null)
-                {
-                    return null;
-                }
+                if (section.Choices == null) return null;
 
                 for (var choiceIndex = 0; choiceIndex < section.Choices.Length; ++choiceIndex)
                 {
-                    Print($"{(choiceIndex + 1).ToString()}: {section.Choices[choiceIndex].Text}", 4);
+                    Print($"{choiceIndex + 1}: {section.Choices[choiceIndex].Text}", IndentSize);
                 }
-                Print($"{(section.Choices.Length + 1).ToString()}: Cancel", 4);
+                Print($"{section.Choices.Length + 1}: Cancel", IndentSize);
 
                 Console.WriteLine();
 
-
-                Console.Write(GetIndentString(Indent));
                 var choiceStr = Console.ReadLine();
                 if (int.TryParse(choiceStr, out var choiceInt))
                 {
@@ -60,7 +55,7 @@ namespace Cli.UI
             while (!validInput)
             {
                 Console.WriteLine();
-                Console.Write($"{GetIndentString(Indent)}{input.Prompt}: ");
+                Console.Write($"{GetIndentString(IndentSize)}{input.Prompt}: ");
 
                 var inputString = Console.ReadLine();
                 if (input.IsValid(inputString))
@@ -74,41 +69,24 @@ namespace Cli.UI
 
         private void PrintHeader(string header)
         {
-            Console.WriteLine($"{_topic} | {header}");
-            Console.WriteLine();
+            Console.WriteLine($"{_topic} | {header}\n");
         }
 
         private static void Print(string text, int indent = 0)
         {
             var lineWidth = Console.WindowWidth - indent;
-            foreach (var line in text.Split(Environment.NewLine))
-            {
-                var pattern = $@"(?<line>.{{1,{(Console.WindowWidth - indent).ToString()}}})(?<!\s)(\s+|$)|(?<line>.+?)(\s+|$)";
-                var lines = Regex.Matches(line, pattern).Select(m => m.Groups["line"].Value);
-                if (lines.Any())
-                {
-                    foreach (var indentLine in lines)
-                    {
-                        Console.WriteLine($"{GetIndentString(Indent)}{indentLine}");
+            var pattern = $@"(?<line>.{{1,{lineWidth}}})(?<!\s)(\s+|$)|(?<line>.+?)(\s+|$)";
+            var lines = Regex.Matches(text, pattern).Select(m => m.Groups["line"].Value);
 
-                    }
-                }
-                else
-                {
-                    Console.WriteLine();
-                }
+            foreach (var line in lines)
+            {
+                Console.WriteLine($"{GetIndentString(indent)}{line}");
             }
         }
 
         private static string GetIndentString(int indent)
         {
-            var indentString = string.Empty;
-            for (var indentIndex = 0; indentIndex < indent; indentIndex++)
-            {
-                indentString += ' ';
-            }
-
-            return indentString;
+            return new string(' ', indent);
         }
     }
 }
