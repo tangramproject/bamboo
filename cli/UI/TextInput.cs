@@ -13,28 +13,29 @@ namespace Cli.UI
     public class TextInput<T> : IUserInterfaceInput<T>
     {
         public string Prompt { get; }
-        private readonly Func<string, bool> _validation;
-        private readonly Func<string, T> _cast;
+        private readonly Func<string, bool>? _validation;
+        private readonly Func<string, T>? _cast;
 
-        public TextInput(string prompt, Func<string, bool> validation, Func<string, T> cast)
+        public TextInput(string prompt, Func<string, bool>? validation = null, Func<string, T>? cast = null)
         {
             Prompt = prompt;
             _validation = validation;
             _cast = cast;
         }
 
-        public bool IsValid(string value)
-        {
-            return _validation == null || _validation.Invoke(value);
-        }
+        public bool IsValid(string value) => _validation?.Invoke(value) ?? true;
 
         public bool Cast(string input, out T output)
         {
-            output = _cast == null
-                ? default
-                : _cast(input);
+            output = default!;
 
-            return _cast == null || !output.Equals(default);
+            if (_cast != null && _cast(input) is T castedValue)
+            {
+                output = castedValue;
+                return true;
+            }
+
+            return false;
         }
     }
 }
