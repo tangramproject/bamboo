@@ -117,7 +117,7 @@ namespace Cli
 |  |_)  |    /  ^  \    |  \  /  | |  |_)  | |  |  |  | |  |  |  | 
 |   _  <    /  /_\  \   |  |\/|  | |   _  <  |  |  |  | |  |  |  | 
 |  |_)  |  /  _____  \  |  |  |  | |  |_)  | |  `--'  | |  `--'  | 
-|______/  /__/     \__\ |__|  |__| |______/   \______/   \______/  v{Util.GetAssemblyVersion()}");
+|______/  /__/     \__\ |__|  |__| |______/   \______/   \______/ Raizen v{Util.GetAssemblyVersion()}");
                 Console.WriteLine("");
                 Console.ResetColor();
                 var builder = CreateWebHostBuilder(args, config);
