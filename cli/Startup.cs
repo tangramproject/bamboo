@@ -6,57 +6,55 @@
 // You should have received a copy of the license along with this
 // work. If not, see <http://creativecommons.org/licenses/by-nc-nd/4.0/>.
 
-using System;
-using System.IO;
-using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using BAMWallet.HD;
+using Serilog;
+using System;
+using System.IO;
+using System.Reflection;
+using Cli.Commands.Common;
+using McMaster.Extensions.CommandLineUtils;
 using BAMWallet.Helper;
 using BAMWallet.Model;
 using BAMWallet.Rpc.Formatters;
 using BAMWallet.Services;
-using Cli.Commands.Common;
-using McMaster.Extensions.CommandLineUtils;
-using Serilog;
 
 namespace Cli
 {
     public class Startup
     {
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="env"></param>
-        /// <param name="configuration"></param>
-        public Startup(IWebHostEnvironment env, IConfiguration configuration)
+        private readonly IConfiguration configuration;
+
+        public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            this.configuration = configuration;
         }
 
-        /// <summary>
-        ///
-        /// </summary>
-        public IConfiguration Configuration { get; private set; }
-
-        /// <summary>
-        ///
-        ///
-        /// </summary>
-        /// <param name="services"></param>
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddOptions()
-                .Configure<NetworkSettings>(options => Configuration.GetSection("NetworkSettings").Bind(options))
-                .Configure<TimingSettings>(options => Configuration.GetSection("Timing").Bind(options))
-                .AddSingleton(Log.Logger);
+            services.AddOptions<NetworkSettings>()
+                .Bind(configuration.GetSection("NetworkSettings"));
+            services.AddOptions<TimingSettings>()
+                .Bind(configuration.GetSection("Timing"));
 
-            services.AddMvcCore().AddApiExplorer();
-            services.AddMvcCore(options => { options.InputFormatters.Insert(0, new BinaryInputFormatter()); });
+            services.AddHttpContextAccessor();
+            services.AddSingleton(Log.Logger);
+            services.AddSingleton<ISafeguardDownloadingFlagProvider, SafeguardDownloadingFlagProvider>();
+            services.AddSingleton<ICommandReceiver, CommandReceiver>();
+            services.AddSingleton<ICommandService, CommandInvoker>();
+            services.AddSingleton<IHostedService, CommandInvoker>();
+            services.AddSingleton<SafeguardService>();
+            services.AddSingleton<IConsole>(PhysicalConsole.Singleton);
+
+            services.AddMvcCore()
+                .AddApiExplorer()
+                .AddBinaryFormatter();
+
             services.AddSwaggerGen(options =>
             {
                 options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
@@ -80,45 +78,44 @@ namespace Cli
                 options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
             });
 
-            services
-                .AddHttpContextAccessor()
-                .AddSingleton(Log.Logger)
-                .AddSingleton<ISafeguardDownloadingFlagProvider, SafeguardDownloadingFlagProvider>()
-                .AddSingleton<ICommandReceiver, CommandReceiver>()
-                .AddSingleton<ICommandService, CommandInvoker>()
-                .AddSingleton<IHostedService, CommandInvoker>(sp => sp.GetService<ICommandService>() as CommandInvoker)
-                .AddHostedService<SafeguardService>() // Order last so that this executes first
-                .Add(new ServiceDescriptor(typeof(IConsole), PhysicalConsole.Singleton));
-
-            services.AddLogging(loggingBuilder => { loggingBuilder.ClearProviders(); });
+            services.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.ClearProviders();
+                loggingBuilder.AddSerilog(dispose: true);
+            });
         }
 
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="app"></param>
-        /// <param name="lifetime"></param>
-        public void Configure(IApplicationBuilder app, IHostApplicationLifetime lifetime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime lifetime)
         {
-            var pathBase = Configuration["PATH_BASE"];
-            if (!string.IsNullOrEmpty(pathBase))
-                app.UsePathBase(pathBase);
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
 
-            app.UseSwagger()
-                .UseSwaggerUI(c =>
-                {
-                    c.SwaggerEndpoint($"{(!string.IsNullOrEmpty(pathBase) ? pathBase : string.Empty)}/swagger/v1/swagger.json", "BAMWalletRest.API V1");
-                    c.OAuthClientId("walletrestswaggerui");
-                    c.OAuthAppName("Bamboo Wallet Rest Swagger UI");
-                })
-                .UseStaticFiles()
-                .UseRouting()
-                .UseEndpoints(endpoints =>
-                {
-                    endpoints.MapControllerRoute(
-                        name: "default",
-                        pattern: "{controller=Home}/{action=Index}/{id?}");
-                });
+            app.UseSerilogRequestLogging();
+
+            var pathBase = configuration["PATH_BASE"];
+            if (!string.IsNullOrEmpty(pathBase))
+            {
+                app.UsePathBase(pathBase);
+            }
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint($"{(!string.IsNullOrEmpty(pathBase) ? pathBase : string.Empty)}/swagger/v1/swagger.json", "BAMWalletRest.API V1");
+                c.OAuthClientId("walletrestswaggerui");
+                c.OAuthAppName("Bamboo Wallet Rest Swagger UI");
+            });
+
+            app.UseStaticFiles();
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllerRoute(
+                    name: "default",
+                    pattern: "{controller=Home}/{action=Index}/{id?}");
+            });
         }
     }
 }
