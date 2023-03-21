@@ -15,15 +15,11 @@ namespace BAMWallet.HD
     {
         public SecureString Identifier { get; }
         public SecureString Passphrase { get; }
-        public Guid SessionId { get; set; }
-        public SessionType SessionType { get; set; }
+        public Guid SessionId { get; }
+        public SessionType SessionType { get; }
         public LiteRepository Database { get; }
-        public bool Syncing { get; set; }
+        public bool Syncing { get; }
 
-        /// <summary>
-        /// Multiple key sets not supported, thus we can simply return the only one keyset create during wallet creation.
-        /// </summary>
-        /// <returns>The one and only KeySet</returns>
         public KeySet KeySet => Database.Query<KeySet>().First();
 
         public bool IsValid => IsIdentifierValid(Identifier);
@@ -33,11 +29,6 @@ namespace BAMWallet.HD
             return IsIdentifierValid(identifier) && IsPassPhraseValid(identifier, passphrase);
         }
 
-        private static bool IsIdentifierValid(SecureString identifier)
-        {
-            return File.Exists(Util.WalletPath(identifier.FromSecureString()));
-        }
-
         public Session(SecureString identifier, SecureString passphrase)
         {
             Identifier = identifier;
@@ -45,34 +36,44 @@ namespace BAMWallet.HD
             SessionId = Guid.NewGuid();
             if (!IsValid)
             {
-                throw new FileLoadException($"Wallet with ID: {identifier.FromSecureString()} not found!");
+                throw new FileNotFoundException($"Wallet with ID: {identifier.FromSecureString()} not found!");
             }
             Database = Util.LiteRepositoryFactory(identifier.FromSecureString(), passphrase);
         }
 
-        private static bool IsPassPhraseValid(SecureString id, SecureString pass)
+        private static bool IsIdentifierValid(SecureString identifier)
+        {
+            return File.Exists(Util.WalletPath(identifier.FromSecureString()));
+        }
+
+        private static async Task<bool> IsPassPhraseValidAsync(SecureString walletIdentifier, SecureString walletPassphrase)
         {
             var connectionString = new ConnectionString
             {
-                Filename = Util.WalletPath(id.FromSecureString()),
-                Password = pass.FromSecureString(),
+                Filename = Util.WalletPath(walletIdentifier.FromSecureString()),
+                Password = walletPassphrase.FromSecureString(),
                 Connection = ConnectionType.Shared
             };
-            using var db = new LiteDatabase(connectionString);
-            var collection = db.GetCollection<KeySet>();
+
             try
             {
-                if (collection.Count() == 1)
-                {
-                    return true;
-                }
+                using var db = new LiteDatabase(connectionString);
+                var collection = db.GetCollection<KeySet>();
+                return await collection.CountAsync() == 1;
             }
             catch (LiteException)
             {
                 return false;
             }
+        }
 
-            return false;
+        public static async Task<bool> AreCredentialsValidAsync(SecureString walletIdentifier, SecureString walletPassphrase)
+        {
+            return await IsIdentifierValidAsync(walletIdentifier) && await IsPassPhraseValidAsync(walletIdentifier, walletPassphrase);
+        }
+
+        private static async Task<bool> IsIdentifierValidAsync(SecureString identifier)
+        {
+            return await File.ExistsAsync(Util.WalletPath(identifier.FromSecureString()));
         }
     }
-}
