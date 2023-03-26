@@ -463,6 +463,7 @@ namespace BAMWallet.HD
                 }
 
                 var size = transaction.GetSize() * 0.001M;
+                if (size < 5) size = 5M; // Default
                 var timer = new Stopwatch();
                 var t = (int)(delay * decimal.Round(size, 0, MidpointRounding.ToZero) * 600 * 1.5M);
                 timer.Start();
