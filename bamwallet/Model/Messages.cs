@@ -121,4 +121,7 @@ namespace BAMWallet.Model
     /// <param name="Value"></param>
     /// <typeparam name="T"></typeparam>
     public record MessageResponse<T>(T Value);
+
+    [MessagePackObject]
+    public record PeerDiscoveryResponse([property: Key(0)] Peer[] Peers);
 }

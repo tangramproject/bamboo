@@ -68,7 +68,7 @@ namespace BAMWallet.HD
             }
 
             _client.SetNetworkingSettings();
-            var peer = _client.Send<Peer>(new Parameter
+            var peer = _client.Send<LocalNode>(new Parameter
             {
                 MessageCommand = MessageCommand.GetPeer
             });
