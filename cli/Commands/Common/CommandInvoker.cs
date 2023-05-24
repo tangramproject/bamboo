@@ -178,6 +178,7 @@ namespace Cli.Commands.Common
             RegisterCommand(new WalletTransferCommand(_serviceProvider));
             RegisterCommand(new WalletTxHistoryCommand(_serviceProvider));
             RegisterCommand(new WalletAddressBookCommand(_serviceProvider));
+            RegisterCommand(new WalletNewCoinCommand(_serviceProvider));
             RegisterCommand(new ExitCommand(_serviceProvider));
             //RegisterCommand(new WalletAppSettingsCommand(_serviceProvider));
         }

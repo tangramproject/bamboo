@@ -7,6 +7,7 @@ namespace BAMWallet.Model
     {
         Send,
         Receive,
-        Restore
+        Restore,
+        Burn
     }
 }

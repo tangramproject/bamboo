@@ -5,7 +5,9 @@ namespace BAMWallet.Model
 {
     public enum SessionType : sbyte
     {
-        Coin,
-        Coinstake,
+        Coin = 0x00,
+        Coinstake = 0x01,
+        Burn = 0x02,
+        Mint = 0x03,
     }
 }

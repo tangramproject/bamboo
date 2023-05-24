@@ -5,14 +5,16 @@ namespace BAMWallet.Model
 {
     public enum CoinType : sbyte
     {
-        Empty = 0,
-        Coin = 1,
-        Coinbase = 2,
-        Coinstake = 3,
-        Fee = 4,
-        Genesis = 5,
-        Payment = 6,
-        Change = 7,
-        Timebase = 8
+        System = 0x00,
+        Coin = 0x01,
+        Coinbase = 0x02,
+        Coinstake = 0x03,
+        Fee = 0x04,
+        Genesis = 0x05,
+        Payment = 0x06,
+        Change = 0x07,
+        Timebase = 0x08,
+        Burn = 0x09,
+        Mint = 0x0A,
     }
 }

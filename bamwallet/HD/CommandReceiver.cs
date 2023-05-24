@@ -244,7 +244,7 @@ namespace BAMWallet.HD
                     {
                         if (walletTransaction.State == WalletTransactionState.Confirmed)
                         {
-                            var keyImage = GetKeyImage(session, output);
+                            var keyImage = GetKeyImage(session, output.E);
                             if (keyImage == null) continue;
                             var spent = IsSpent(session, keyImage);
                             if (spent) continue;
@@ -366,22 +366,16 @@ namespace BAMWallet.HD
                     {
                         new Vout
                         {
-                            A = session.SessionType == SessionType.Coinstake
-                                    ? walletTransaction.Payment
-                                    : 0,
+                            A = 0,
                             C = ringCt.PcmOut[0],
-                            D = session.SessionType == SessionType.Coinstake
-                                ? ringCt.Blinds[1]
-                                : Array.Empty<byte>(),
-                            E = stealthPayment.Metadata.EphemKey.ToBytes(),
+                            D = Array.Empty<byte>(),
+                            E = session.SessionType == SessionType.Burn ? "OP_RETURN".ToBytes() : stealthPayment.Metadata.EphemKey.ToBytes(),
                             N = ScanPublicKey(walletTransaction.RecipientAddress).Encrypt(
                                 Transaction.Message(walletTransaction.Payment, 0, ringCt.Blinds[1],
                                     walletTransaction.Memo)),
                             P = outPkPayment.ToBytes(),
                             S = Array.Empty<byte>(),
-                            T = session.SessionType == SessionType.Coin
-                                ? CoinType.Payment
-                                : CoinType.Coinstake
+                            T = session.SessionType == SessionType.Coin ? CoinType.Payment : CoinType.Burn
                         },
                         new Vout
                         {
@@ -399,33 +393,6 @@ namespace BAMWallet.HD
                     },
                     Id = session.SessionId
                 };
-
-                if (session.SessionType == SessionType.Coinstake)
-                {
-                    using var secp256K1 = new Secp256k1();
-                    using var pedersen = new Pedersen();
-                    var (outPkReward, stealthReward) = StealthPayment(walletTransaction.SenderAddress);
-                    var rewardLockTime = new LockTime(Util.DateTimeToUnixTime(DateTimeOffset.UtcNow.AddHours(21)));
-                    var blind = pedersen.BlindSwitch(walletTransaction.Reward, secp256K1.CreatePrivateKey());
-                    var commit = pedersen.Commit(walletTransaction.Reward, blind);
-                    var vOutput = tx.Vout.ToList();
-                    vOutput.Insert(0,
-                        new Vout
-                        {
-                            A = walletTransaction.Reward,
-                            C = commit,
-                            D = blind,
-                            E = stealthReward.Metadata.EphemKey.ToBytes(),
-                            L = rewardLockTime.Value,
-                            N = ScanPublicKey(walletTransaction.SenderAddress).Encrypt(Transaction.Message(
-                                walletTransaction.Reward, 0, blind, walletTransaction.Memo)),
-                            P = outPkReward.ToBytes(),
-                            S = new Script(Op.GetPushOp(rewardLockTime.Value), OpcodeType.OP_CHECKLOCKTIMEVERIFY)
-                                .ToString().ToBytes(),
-                            T = CoinType.Coinbase
-                        });
-                    tx.Vout = vOutput.ToArray();
-                }
 
                 walletTransaction.Transaction = tx;
             }
@@ -541,7 +508,7 @@ namespace BAMWallet.HD
             {
                 return null;
             }
-        begin:
+            begin:
             transactions.Shuffle();
             for (var k = 0; k < nRows - 1; ++k)
                 for (var i = 0; i < nCols; ++i)
@@ -755,16 +722,16 @@ namespace BAMWallet.HD
         }
 
         /// <summary>
-        ///
+        /// 
         /// </summary>
         /// <param name="session"></param>
-        /// <param name="output"></param>
+        /// <param name="pubKey"></param>
         /// <returns></returns>
-        private byte[] GetKeyImage(Session session, Vout output)
+        private byte[] GetKeyImage(Session session, byte[] pubKey)
         {
-            Guard.Argument(output, nameof(output)).NotNull();
+            Guard.Argument(pubKey, nameof(pubKey)).NotNull().MaxCount(33);
             var (spend, scan) = Unlock(session);
-            var oneTimeSpendKey = spend.Uncover(scan, new PubKey(output.E));
+            var oneTimeSpendKey = spend.Uncover(scan, new PubKey(pubKey));
             var mlsag = new MLSAG();
             return mlsag.ToKeyImage(oneTimeSpendKey.ToHex().HexToByte(), oneTimeSpendKey.PubKey.ToBytes());
         }
@@ -1488,9 +1455,7 @@ namespace BAMWallet.HD
             }
 
             if (!IsBase58(walletTransaction.RecipientAddress))
-            {
                 return new Tuple<object, string>(null, "Recipient address does not phrase to a base58 format");
-            }
 
             var (_, scan) = Unlock(session);
             var transactions = new List<Transaction>();
@@ -1519,9 +1484,9 @@ namespace BAMWallet.HD
                 }
                 var newWalletTransaction = new WalletTransaction
                 {
+                    Id = session.SessionId,
                     Balance = amount,
                     Change = (ulong)change,
-                    Id = session.SessionId,
                     Memo = walletTransaction.Memo,
                     Payment = amount,
                     Reward = session.SessionType == SessionType.Coinstake ? walletTransaction.Reward : 0,
@@ -1529,7 +1494,7 @@ namespace BAMWallet.HD
                     DateTime = DateTime.UtcNow,
                     RecipientAddress = walletTransaction.RecipientAddress,
                     SenderAddress = walletTransaction.SenderAddress,
-                    WalletType = WalletType.Send
+                    WalletType = walletTransaction.WalletType,
                 };
                 var generateTransaction =
                     GenerateTransaction(session, ref newWalletTransaction, ref ringConfidentialTransaction);
@@ -1543,6 +1508,13 @@ namespace BAMWallet.HD
                 if (payment == 0) break;
             }
 
+            if (session.SessionType == SessionType.Burn)
+            {
+                var newCoinTransaction = NewCoin(session, transactions.SelectMany(x => x.Vout).ToArray(),
+                    walletTransaction.Payment, walletTransaction.RecipientAddress);
+                transactions.Add(newCoinTransaction);
+            }
+            
             var tx = new Transaction
             {
                 Bp = transactions.SelectMany(x => x.Bp).ToArray(),
@@ -1552,27 +1524,76 @@ namespace BAMWallet.HD
                 Vout = transactions.SelectMany(x => x.Vout).ToArray()
             };
 
-            if (session.SessionType == SessionType.Coin)
+            var generateTransactionTime = GenerateTransactionTime(tx.ToHash(), ref tx, walletTransaction.Delay);
+            if (!generateTransactionTime.Success)
             {
-                var generateTransactionTime = GenerateTransactionTime(tx.ToHash(), ref tx, walletTransaction.Delay);
-                if (!generateTransactionTime.Success)
-                {
-                    return new Tuple<object, string>(null, "Unable to set the transaction priority time");
-                }
-
-                tx.Vtime = generateTransactionTime.Result;
+                return new Tuple<object, string>(null, "Unable to set the transaction priority time");
             }
 
+            tx.Vtime = generateTransactionTime.Result;
             tx.Vtime.K = (int)(tx.GetSize() * 0.001M).ConvertToUInt32();
             tx.TxnId = tx.ToHash();
             walletTransaction.Transaction = tx;
             walletTransaction.State = WalletTransactionState.WaitingConfirmation;
+            
             var saved = Save(session, walletTransaction, false);
             return !saved.Success
                 ? new Tuple<object, string>(null, "Unable to save the transaction")
                 : new Tuple<object, string>(walletTransaction, string.Empty);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="outputs"></param>
+        /// <param name="payment"></param>
+        /// <param name="address"></param>
+        /// <exception cref="Exception"></exception>
+        private Transaction NewCoin(in Session session, Vout[] outputs, ulong payment, string address)
+        {
+            using var pedersen = new Pedersen();
+            using var secp256K1 = new Secp256k1();
+            var commitments = outputs.Where(x => x.T == CoinType.Burn).Select(x => x.C).ToList();
+            var commitSum = pedersen.CommitSum(commitments, new List<byte[]>());
+            
+            if (!pedersen.VerifyCommitSum(new List<byte[]> { commitSum }, commitments))
+                throw new Exception("Verify commit sum failed");
+            
+            var (_, scan) = Unlock(session);
+            var blinds = outputs.Where(x => x.T == CoinType.Burn).Select(x => Transaction.Message(x, scan).Blind).ToList();
+            var blind = pedersen.BlindSum(blinds, new List<byte[]>());
+            var commit = pedersen.Commit(payment, blind);
+            
+            if (!pedersen.VerifyCommitSum(new List<byte[]> { commit }, commitments))
+                throw new Exception("Verify commit sum failed");
+            
+            var (outPkPayment, stealthPayment) = StealthPayment(address);
+            var tx = new Transaction
+            {
+                Bp = new []{ new Bp { Proof  = BulletProof(payment, blind, commit).Result.proof}},
+                Rct = Array.Empty<Rct>(),
+                Vin =  Array.Empty<Vin>(),
+                Vout = new[]
+                {
+                    new Vout
+                    {
+                        A = 0,
+                        C = commit,
+                        D = Array.Empty<byte>(),
+                        E = stealthPayment.Metadata.EphemKey.ToBytes(),
+                        N = ScanPublicKey(address).Encrypt(
+                            Transaction.Message(payment, 0, blind, "New coin")),
+                        P = outPkPayment.ToBytes(),
+                        S = Array.Empty<byte>(),
+                        T = CoinType.Mint
+                    }
+                }
+            };
+
+            return tx;
+        }
+        
         /// <summary>
         /// 
         /// </summary>
@@ -1963,6 +1984,7 @@ namespace BAMWallet.HD
                             var outputs = new List<Vout>();
                             foreach (var v in transaction.Vout)
                             {
+                                if (v.T == CoinType.System) continue;
                                 var uncover = spend.Uncover(scan, new PubKey(v.E));
                                 if (uncover.PubKey.ToBytes().Xor(v.P)) outputs.Add(v);
                             }
