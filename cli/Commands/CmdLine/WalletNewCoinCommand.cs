@@ -19,8 +19,8 @@ namespace CLi.Commands.CmdLine;
 public class WalletNewCoinCommand : Command
 {
     private readonly ILogger _logger;
-    
-    public  WalletNewCoinCommand(IServiceProvider serviceProvider)
+
+    public WalletNewCoinCommand(IServiceProvider serviceProvider)
         : base(typeof(WalletNewCoinCommand), serviceProvider, true)
     {
     }
@@ -31,7 +31,7 @@ public class WalletNewCoinCommand : Command
         {
             var address = Prompt.GetString("Address/Name:", null, ConsoleColor.Red);
             var amount = Prompt.GetString("Consolidated Amount:", null, ConsoleColor.Red);
-            
+
             if (!_commandReceiver.IsBase58(address))
             {
                 var addressBook = new AddressBook { Name = address };
@@ -57,7 +57,7 @@ public class WalletNewCoinCommand : Command
                     return;
                 }
             }
-            
+
             WalletTransaction transaction = null;
             await Spinner.StartAsync("Checking confirmed balance(s) ...", spinner =>
             {
@@ -84,7 +84,7 @@ public class WalletNewCoinCommand : Command
                             throw new Exception(canSpend.NonSuccessMessage);
                         }
                     }
-   
+
                 }
                 catch (Exception ex)
                 {
@@ -97,11 +97,11 @@ public class WalletNewCoinCommand : Command
 
                 return Task.CompletedTask;
             });
-            
+
             WalletTransaction walletTransaction = null;
             await Spinner.StartAsync("Processing transaction...", spinner =>
             {
-                
+
                 try
                 {
                     if (transaction == null) return Task.CompletedTask;
@@ -127,7 +127,7 @@ public class WalletNewCoinCommand : Command
 
                 return Task.CompletedTask;
             });
-            
+
             await Spinner.StartAsync("Sending transaction ...", spinner =>
             {
                 if (walletTransaction == null) return Task.CompletedTask;
@@ -154,9 +154,9 @@ public class WalletNewCoinCommand : Command
                         spinner.Succeed(message);
                     }
                 }
-                
+
                 Thread.Sleep(100);
-                
+
                 return Task.CompletedTask;
             }, Patterns.Toggle3);
         }

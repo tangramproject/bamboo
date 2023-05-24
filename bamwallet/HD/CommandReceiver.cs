@@ -508,7 +508,7 @@ namespace BAMWallet.HD
             {
                 return null;
             }
-            begin:
+        begin:
             transactions.Shuffle();
             for (var k = 0; k < nRows - 1; ++k)
                 for (var i = 0; i < nCols; ++i)
@@ -1514,7 +1514,7 @@ namespace BAMWallet.HD
                     walletTransaction.Payment, walletTransaction.RecipientAddress);
                 transactions.Add(newCoinTransaction);
             }
-            
+
             var tx = new Transaction
             {
                 Bp = transactions.SelectMany(x => x.Bp).ToArray(),
@@ -1535,7 +1535,7 @@ namespace BAMWallet.HD
             tx.TxnId = tx.ToHash();
             walletTransaction.Transaction = tx;
             walletTransaction.State = WalletTransactionState.WaitingConfirmation;
-            
+
             var saved = Save(session, walletTransaction, false);
             return !saved.Success
                 ? new Tuple<object, string>(null, "Unable to save the transaction")
@@ -1556,24 +1556,24 @@ namespace BAMWallet.HD
             using var secp256K1 = new Secp256k1();
             var commitments = outputs.Where(x => x.T == CoinType.Burn).Select(x => x.C).ToList();
             var commitSum = pedersen.CommitSum(commitments, new List<byte[]>());
-            
+
             if (!pedersen.VerifyCommitSum(new List<byte[]> { commitSum }, commitments))
                 throw new Exception("Verify commit sum failed");
-            
+
             var (_, scan) = Unlock(session);
             var blinds = outputs.Where(x => x.T == CoinType.Burn).Select(x => Transaction.Message(x, scan).Blind).ToList();
             var blind = pedersen.BlindSum(blinds, new List<byte[]>());
             var commit = pedersen.Commit(payment, blind);
-            
+
             if (!pedersen.VerifyCommitSum(new List<byte[]> { commit }, commitments))
                 throw new Exception("Verify commit sum failed");
-            
+
             var (outPkPayment, stealthPayment) = StealthPayment(address);
             var tx = new Transaction
             {
-                Bp = new []{ new Bp { Proof  = BulletProof(payment, blind, commit).Result.proof}},
+                Bp = new[] { new Bp { Proof = BulletProof(payment, blind, commit).Result.proof } },
                 Rct = Array.Empty<Rct>(),
-                Vin =  Array.Empty<Vin>(),
+                Vin = Array.Empty<Vin>(),
                 Vout = new[]
                 {
                     new Vout
@@ -1593,7 +1593,7 @@ namespace BAMWallet.HD
 
             return tx;
         }
-        
+
         /// <summary>
         /// 
         /// </summary>
