@@ -40,6 +40,13 @@ namespace Cli.Commands.CmdLine
                 _console.WriteLine("Waiting Confirmation  [1]\n" + "Confirmed             [2]\n" + "Not Found             [3]\n" + "All                   [4]");
                 _console.ForegroundColor = ConsoleColor.White;
                 var status = Prompt.GetInt("Option:", (int?)WalletTransactionState.All, ConsoleColor.Magenta);
+
+                await Spinner.StartAsync("Scanning for new transactions ...", spinner =>
+                {
+                    _commandReceiver.RecoverTransactions(activeSession, 0);
+                    return Task.CompletedTask;
+                });
+
                 await Spinner.StartAsync("Looking up history ...", async spinner =>
                 {
                     BalanceSheet[] orderedBalanceSheets;
