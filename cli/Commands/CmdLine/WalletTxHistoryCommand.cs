@@ -119,10 +119,10 @@ namespace Cli.Commands.CmdLine
         private void DrawTable(BalanceSheet[] orderedBalanceSheets)
         {
             var table = new ConsoleTable("Date Time", "Transaction Id", "Memo", "Money In", "Money Out",
-                "Coinbase", "Balance", "Status", "Locked");
+                "Coinbase", "Mint", "Balance", "Status", "Locked");
             foreach (var sheet in orderedBalanceSheets.OrderBy(x => x.Date))
             {
-                table.AddRow(sheet.Date.ToString("dd-MM-yyyy HH:mm:ss"), sheet.TxId, sheet.Memo, sheet.MoneyIn, sheet.MoneyOut, sheet.Reward,
+                table.AddRow(sheet.Date.ToString("dd-MM-yyyy HH:mm:ss"), sheet.TxId, sheet.Memo, sheet.MoneyIn, sheet.MoneyOut, sheet.Reward, sheet.Mint,
                     sheet.Balance, sheet.State.ToString(), sheet.IsLocked.ToString());
             }
 

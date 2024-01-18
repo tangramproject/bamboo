@@ -244,6 +244,7 @@ namespace BAMWallet.HD
                     {
                         if (walletTransaction.State == WalletTransactionState.Confirmed)
                         {
+                            if (output.T == CoinType.Burn) continue;
                             var keyImage = GetKeyImage(session, output.E);
                             if (keyImage == null) continue;
                             var spent = IsSpent(session, keyImage);
@@ -300,9 +301,10 @@ namespace BAMWallet.HD
                 .Sum(x => x.Commitment.A.DivWithGYin());
             var coinbase = balances.Where(x => x.Commitment.T == CoinType.Coinbase)
                 .Sum(x => x.Commitment.A.DivWithGYin());
+            var mint = balances.Where(x => x.Commitment.T == CoinType.Mint).Sum(x => x.Total.DivWithGYin());
             var change = balances.Where(x => x.Commitment.T == CoinType.Change).Sum(x => x.Total.DivWithGYin());
-            var balance = payment + coinstake + coinbase + change;
-            balanceProfile = new BalanceProfile(payment, coinstake, coinbase, change, balance);
+            var balance = mint + payment + coinstake + coinbase + change;
+            balanceProfile = new BalanceProfile(mint, payment, coinstake, coinbase, change, balance);
             return balanceProfile;
         }
 
@@ -655,6 +657,7 @@ namespace BAMWallet.HD
         /// <param name="sent"></param>
         /// <param name="received"></param>
         /// <param name="reward"></param>
+        /// <param name="mint"></param>
         /// <param name="balance"></param>
         /// <param name="outputs"></param>
         /// <param name="txId"></param>
@@ -662,7 +665,7 @@ namespace BAMWallet.HD
         /// <param name="isLocked"></param>
         /// <returns></returns>
         private static BalanceSheet MoneyBalanceSheet(DateTime dateTime, string memo, ulong sent, ulong received,
-            ulong reward, ulong balance, Vout[] outputs, string txId, WalletTransactionState state,
+            ulong reward, ulong mint, ulong balance, Vout[] outputs, string txId, WalletTransactionState state,
             bool? isLocked = null)
         {
             var balanceSheet = new BalanceSheet
@@ -688,6 +691,11 @@ namespace BAMWallet.HD
             if (reward != 0)
             {
                 balanceSheet.Reward = $"{reward.DivWithGYin():F9}";
+            }
+            
+            if (mint != 0)
+            {
+                balanceSheet.Mint = $"{mint.DivWithGYin():F9}";
             }
 
             return balanceSheet;
@@ -1054,7 +1062,7 @@ namespace BAMWallet.HD
                         if (messagePayment.Amount == 0) continue;
                         received += messagePayment.Amount;
                         balanceSheets.Add(MoneyBalanceSheet(messagePayment.Date, messagePayment.Memo, 0,
-                            messagePayment.Amount, 0, received, new[] { payment }, transaction.TxnId.ByteToHex(),
+                            messagePayment.Amount, 0, 0, received, new[] { payment }, transaction.TxnId.ByteToHex(),
                             walletTransaction.State, isLocked));
                     }
 
@@ -1098,21 +1106,21 @@ namespace BAMWallet.HD
                         if (messageCoinstake == null && messageCoinbase != null)
                         {
                             balanceSheets.Add(MoneyBalanceSheet(messageCoinbase.Date, messageCoinbase.Memo, 0,
-                                0, messageCoinbase.Amount, received, change,
+                                0, messageCoinbase.Amount,0, received, change,
                                 transaction.TxnId.ByteToHex(), walletTransaction.State, isLocked));
                         }
 
                         if (messageCoinstake != null && messageCoinbase != null)
                         {
                             balanceSheets.Add(MoneyBalanceSheet(messageCoinstake.Date, messageCoinstake.Memo,
-                                messageCoinstake.Amount, messageCoinstake.Amount, messageCoinbase.Amount, received,
+                                messageCoinstake.Amount, messageCoinstake.Amount, messageCoinbase.Amount, 0, received,
                                 change, transaction.TxnId.ByteToHex(), walletTransaction.State, isLocked));
                         }
 
                         if (messageCoinstake != null && messageCoinbase == null)
                         {
                             balanceSheets.Add(MoneyBalanceSheet(messageCoinstake.Date, messageCoinstake.Memo,
-                                messageCoinstake.Amount, messageCoinstake.Amount, 0, received, change,
+                                messageCoinstake.Amount, messageCoinstake.Amount, 0, 0, received, change,
                                 transaction.TxnId.ByteToHex(), walletTransaction.State, isLocked));
                         }
 
@@ -1130,9 +1138,26 @@ namespace BAMWallet.HD
                                 : messageChange.Paid;
                         }
                         balanceSheets.Add(MoneyBalanceSheet(messageChange.Date, messageChange.Memo, messageChange.Paid,
-                            0, 0, received, new[] { paid }, transaction.TxnId.ByteToHex(), walletTransaction.State,
+                            0, 0, 0, received, new[] { paid }, transaction.TxnId.ByteToHex(), walletTransaction.State,
                             isLocked));
                     }
+                    
+                    // check mint coin type
+                    var mint = transaction.Vout.Where(z => z.T is CoinType.Mint).ToArray();
+                    if (!mint.Any()) continue;
+                    var mintOutputs = mint.Select(x => Enum.GetName(x.T)).ToArray();
+                    if (!mintOutputs.Contains(Enum.GetName(CoinType.Mint))) continue;
+                    WalletTransactionMessage messageMint = null;
+                    if (mintOutputs.Contains(Enum.GetName(CoinType.Mint)))
+                    {
+                        messageMint = Transaction.Message(mint.ElementAt(0), scan);
+                    }
+
+                    if (messageMint == null) continue;
+                    received += messageMint.Amount;
+                    balanceSheets.Add(MoneyBalanceSheet(messageMint.Date, messageMint.Memo, 0,
+                        0, 0, messageMint.Amount, received, mint,
+                        transaction.TxnId.ByteToHex(), walletTransaction.State, isLocked));
                 }
             }
             catch (Exception ex)
@@ -1174,7 +1199,7 @@ namespace BAMWallet.HD
                             if (messagePayment.Amount != 0)
                             {
                                 balanceSheets.Add(MoneyBalanceSheet(messagePayment.Date, messagePayment.Memo, 0,
-                                    messagePayment.Amount, 0, 0, new[] { payment }, transaction.TxnId.ByteToHex(),
+                                    messagePayment.Amount, 0, 0, 0, new[] { payment }, transaction.TxnId.ByteToHex(),
                                     walletTransaction.State, false));
                             }
                         }
@@ -1185,7 +1210,7 @@ namespace BAMWallet.HD
                         {
                             balanceSheets.Add(MoneyBalanceSheet(messageChange.Date, messageChange.Memo,
                                 messageChange.Paid,
-                                0, 0, messageChange.Amount, new[] { change }, transaction.TxnId.ByteToHex(),
+                                0, 0, 0, messageChange.Amount, new[] { change }, transaction.TxnId.ByteToHex(),
                                 walletTransaction.State,
                                 false));
                         }
@@ -1543,7 +1568,7 @@ namespace BAMWallet.HD
         }
 
         /// <summary>
-        /// 
+        /// new
         /// </summary>
         /// <param name="session"></param>
         /// <param name="outputs"></param>
@@ -1985,6 +2010,7 @@ namespace BAMWallet.HD
                             foreach (var v in transaction.Vout)
                             {
                                 if (v.T == CoinType.System) continue;
+                                if (v.T == CoinType.Burn) continue;
                                 var uncover = spend.Uncover(scan, new PubKey(v.E));
                                 if (uncover.PubKey.ToBytes().Xor(v.P)) outputs.Add(v);
                             }
