@@ -505,11 +505,9 @@ namespace BAMWallet.HD
         {
             using var pedersen = new Pedersen();
             var (spend, scan) = Unlock(session);
-            var transactions = SafeguardService.GetTransactions().Where(x => !x.IsLockedOrInvalid()).ToArray();
-            if (transactions.Length == 0)
-            {
-                return null;
-            }
+            var transactions = SafeguardService.GetTransactions()
+                .Where(x => !x.IsLockedOrInvalid() && x.Vout.All(z => z.T != CoinType.System)).ToArray();
+            if (transactions.Length == 0) return null;
         begin:
             transactions.Shuffle();
             for (var k = 0; k < nRows - 1; ++k)
@@ -705,7 +703,6 @@ namespace BAMWallet.HD
         /// 
         /// </summary>
         /// <param name="address"></param>
-        /// <param name="keyImage"></param>
         /// <returns></returns>
         public (PubKey, StealthPayment) StealthPayment(string address)
         {
@@ -1779,6 +1776,7 @@ namespace BAMWallet.HD
         {
             using var commandExecutionGuard =
                 new RAIIGuard(IncrementCommandExecutionCount, DecrementCommandExecutionCount);
+            
             try
             {
                 _client.HasRemoteAddress();
