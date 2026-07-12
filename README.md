@@ -1,3 +1,7 @@
+# Repository Archived
+
+This repository has been archived. It is no longer actively maintained. 
+
 # Tangram Bamboo wallet
 
 [![Build Tangram wallet](https://github.com/tangramproject/bamboo/workflows/build%20tangram%20wallet/badge.svg)](https://github.com/tangramproject/bamboo/commits/master/)
